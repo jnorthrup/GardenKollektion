@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>gossip</groupId>
+        <artifactId>meta-gk</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <groupId>gossip</groupId>
+    <artifactId>gk-locator</artifactId>
+    <version>1.0-SNAPSHOT</version>
+<description>
+    intent:
+    define gossip mesh exemplars
+    * defaults for localnetwork, ports, and bootstrap configs
+    * rest client api
+    * provide ghetto-redis and isam for all the things
+    * java names, java executors over coroutines, kotlin FP
+
+
+</description>
+    
+</project>
