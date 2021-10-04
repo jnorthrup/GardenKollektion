@@ -20,8 +20,6 @@
     * rest client api
     * provide ghetto-redis and isam for all the things
     * java names, java executors over coroutines, kotlin FP
-
-
 </description>
     
 </project>

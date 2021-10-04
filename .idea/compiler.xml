@@ -8,6 +8,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="cursor" />
         <module name="gk-libs" />
+        <module name="gk-bytecursive" />
         <module name="lillypads" />
         <module name="exchange" />
         <module name="gk-locator" />
