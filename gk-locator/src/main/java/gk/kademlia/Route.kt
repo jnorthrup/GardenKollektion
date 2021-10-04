@@ -1,5 +1,9 @@
 package gk.kademlia
 
-open class Route<Sz : AddressSize>(val nSize: Sz = GUID.size64_global as Sz) {
-    var guid: GUID<Sz>? = null
+
+
+open class Route<Sz : AddressSize,T>(    var guid: GUID<Sz,T> ? = null,  ) {
+    val nSize get() =  guid?.sz
+
+    lateinit var address: Address
 }
