@@ -2,11 +2,11 @@
 
 package gk.kademlia
 
+import gk.kademlia.id.NUID
+import vec.macros.Pai2
 import java.net.URI
 
 typealias Address = URI
 typealias Api = (Any?) -> Any?
 typealias ApiKey = String
-typealias Bucket<Sz, T> = LinkedHashMap<GUID<Sz, T>, Route<Sz, T>?>
-typealias Envelope<Sz, T> = List<GUID<Sz, T>>
-typealias Payload = Any?
+typealias   Route<T> = Pai2<NUID<T>, Address>
