@@ -27,6 +27,7 @@ interface NUID<Primitive : Comparable<Primitive>> {
             }.sorted().forEach {
                 accum = xor(accum, shl(one, it))
             }
+            accum
         }
     }
 

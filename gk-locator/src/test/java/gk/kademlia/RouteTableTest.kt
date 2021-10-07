@@ -2,7 +2,7 @@ package gk.kademlia
 
 import gk.kademlia.agent.Agent
 import gk.kademlia.id.WorkerNUID
-import gk.kademlia.net.warmSz
+
 import junit.framework.Assert.assertEquals
 import org.junit.Test
 import vec.macros.t2
@@ -18,16 +18,13 @@ class RouteTableTest {
     val d_twos = UByteArray(upper.size) { x -> with(nuid.ops) { xor(one, upper[x]) } }
     val d_twos_point_one = UByteArray(upper.size) { x -> with(nuid.ops) { xor(shl(one, x), upper[x]) } }
 
-    val agent = object : Agent<warmSz, UByte> {
-        override val NUID = nuid
-        override val routingTable = object : RoutingTable<warmSz, UByte>(NUID) {}
-        override val send: Api = { any -> any }
-        override val recv: Api = { any -> any }
-    }
-
     @Test
     fun testRouteAdd() {
-        agent.run {
+        object : Agent<NetworkSize.Companion.warmSz, UByte> {
+            override val NUID = nuid
+            override val routingTable = object : RoutingTable<NetworkSize.Companion.warmSz, UByte>(NUID) {}
+
+        }.run {
             routingTable.addRoute(nuid1 t2 URI("urn:null"))
             for (dOne in d_ones) routingTable.addRoute(WorkerNUID(dOne) t2 URI("urn:$dOne@net"))
             for (dOne in d_twos) routingTable.addRoute(WorkerNUID(dOne) t2 URI("urn:$dOne@net"))
@@ -37,6 +34,35 @@ class RouteTableTest {
             assertEquals(routingTable.buckets[1].size, 11)
             assertEquals(routingTable.buckets[6].size, 1)
             debug { }
+        }
+    }
+
+    @Test
+    fun testRandomWithDistanceAndFog() {
+        object : Agent<NetworkSize.Companion.warmSz, UByte> {
+            override val NUID = nuid
+            override val routingTable = object : RoutingTable<NetworkSize.Companion.warmSz, UByte>(NUID, 1) {}
+
+        }.run {
+            routingTable.addRoute(nuid.run { val id1 = random(bits())
+                WorkerNUID(id1)  t2 URI("urn:$id1")})
+
+            val ich = nuid.ops.one
+            run{
+                val linkedSetOf = linkedSetOf(ich).also(LinkedHashSet<UByte>::clear)
+
+                while (linkedSetOf.size < 3) linkedSetOf.add(nuid.run { random(bits() - 1) })
+                linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
+            }
+            run{
+                val linkedSetOf = linkedSetOf(ich).also(LinkedHashSet<UByte>::clear)
+
+                while (linkedSetOf.size < 7) linkedSetOf.add(nuid.run { random(1) })
+                linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
+            }
+            debug { }
+            assertEquals(routingTable.buckets[0].size, 7)
+            assertEquals(routingTable.buckets[5].size, 1)
         }
     }
 }
