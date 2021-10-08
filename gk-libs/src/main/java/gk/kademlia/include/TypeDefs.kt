@@ -1,6 +1,6 @@
 @file:Suppress("UNCHECKED_CAST") @file:OptIn(ExperimentalUnsignedTypes::class, ExperimentalStdlibApi::class)
 
-package gk.kademlia
+package gk.kademlia.include
 
 import gk.kademlia.id.NUID
 import vec.macros.Pai2

@@ -3,9 +3,9 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>gossip</groupId>
+    <groupId>com.vsiwest.gossip</groupId>
     <artifactId>meta-gk</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <name>GardenKollektion</name>
     <packaging>pom</packaging>
     <parent>
         <artifactId>meta-columnar</artifactId>
@@ -13,12 +13,12 @@
         <version>1.0.2-SNAPSHOT</version>
     </parent>
     <modules>
-        <module>gk-locator</module>
+        <module>gk-router</module>
         <module>gk-ipfs</module>
         <module>gk-libs</module>
         <module>gk-bytecursive</module>
+        <module>gk-agent</module>
     </modules>
-
     <dependencies>
         <dependency>
             <groupId>com.vsiwest.columnar</groupId>
