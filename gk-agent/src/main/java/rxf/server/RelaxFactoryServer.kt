@@ -43,6 +43,6 @@ interface RelaxFactoryServer {
     }
 
     companion object {
-        val rxfTl: InheritableThreadLocal<RelaxFactoryServer?> = InheritableThreadLocal<Any?>()
+        val rxfTl: InheritableThreadLocal<RelaxFactoryServer?> = InheritableThreadLocal()
     }
 }

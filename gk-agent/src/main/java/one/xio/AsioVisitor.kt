@@ -1,10 +1,14 @@
 package one.xio
 
+
+import one.xio.HttpMethod.Companion.enqueue
+import one.xio.HttpMethod.Companion.wheresWaldo
 import java.nio.ByteBuffer
 import java.nio.channels.SelectionKey
 import java.nio.channels.ServerSocketChannel
 import java.nio.channels.SocketChannel
 import java.util.*
+import kotlin.text.Charsets.UTF_8
 
 /**
  * User: jim
@@ -25,7 +29,7 @@ interface AsioVisitor {
     fun onAccept(key: SelectionKey)
     open class Impl : AsioVisitor {
         init {
-            if (`$DBG`) `$origins`!![this] = HttpMethod.Companion.wheresWaldo(4)
+            if (`$DBG`) `$origins`!![this] =  wheresWaldo(4)
         }
 
         fun preRead(vararg env: Any?): Impl {
@@ -41,7 +45,7 @@ interface AsioVisitor {
             System.err.println("fail: $key")
             val channel = key.channel() as SocketChannel
             val receiveBufferSize = channel.socket().receiveBufferSize
-            val trim: String = HttpMethod.Companion.UTF8.decode(ByteBuffer.allocateDirect(receiveBufferSize)).toString()
+            val trim: String = UTF_8.decode(ByteBuffer.allocateDirect(receiveBufferSize)).toString()
                 .trim { it <= ' ' }
             throw UnsupportedOperationException("found " + trim + " in " + javaClass.name)
         }
@@ -69,7 +73,7 @@ interface AsioVisitor {
             val c = key.channel() as ServerSocketChannel
             val accept = c.accept()
             accept.configureBlocking(false)
-            HttpMethod.Companion.enqueue(accept, SelectionKey.OP_READ or SelectionKey.OP_WRITE, key.attachment())
+            enqueue(accept, SelectionKey.OP_READ or SelectionKey.OP_WRITE, key.attachment())
         }
     }
 

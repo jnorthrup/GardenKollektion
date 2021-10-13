@@ -1,5 +1,6 @@
 package rxf.server.driver
 
+import vec.util.logDebug
 import java.util.*
 
 object RxfBootstrap {
@@ -8,12 +9,11 @@ object RxfBootstrap {
             "rxf.server." + rxf_var.lowercase(Locale.getDefault()).replace("^rxf_(server_)?".toRegex(), "")
                 .replace('_', '.')
         val rxfenv = System.getenv(rxf_var)
-        var `var` = rxfenv ?: System.getProperty(javapropname)
-        `var` = if (null == `var` && defaultVal.size > 0) defaultVal[0] else `var`
-        if (null != `var`) {
-            System.setProperty(javapropname, `var`)
-            System.err.println("// -D$javapropname=\"$`var`\"")
-        }
-        return `var`
+        var theVar = rxfenv ?: System.getProperty(javapropname)
+        theVar = (defaultVal.takeIf { it.isNotEmpty() })?.let { theVar } ?: defaultVal[0]
+        return ( theVar?.also {
+            System.setProperty(javapropname, it)
+            logDebug { "// -D$javapropname=\"$it\"" }
+        })
     }
 }

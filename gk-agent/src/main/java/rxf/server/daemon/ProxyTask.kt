@@ -19,7 +19,7 @@ import kotlin.Throwable
  */
 open class ProxyTask : Runnable {
     var prefix: String? = null
-    var proxyPorts: Array<String>
+    lateinit var proxyPorts: Array<String>
     override fun run() {
         try {
             for (proxyPort in proxyPorts) {
@@ -37,7 +37,7 @@ open class ProxyTask : Runnable {
         @JvmStatic
         fun main(args: Array<String>) {
             //boilerplate HttpMethod.init() here
-            BlobAntiPatternObject.getEXECUTOR_SERVICE().submit(object : ProxyTask() {
+            BlobAntiPatternObject.eXECUTOR_SERVICE.submit(object : ProxyTask() {
                 init {
                     proxyPorts = args
                 }

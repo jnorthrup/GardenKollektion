@@ -42,7 +42,7 @@ abstract class ActionBuilder {
     }
 
     companion object {
-        val HEADER_INTEREST: Array<String?> =
+        val HEADER_INTEREST =
             Rfc822HeaderState.Companion.staticHeaderStrings(HttpHeaders.ETag, HttpHeaders.`Content$2dLength`)
         protected var currentAction: ThreadLocal<ActionBuilder?> = InheritableThreadLocal()
         fun get(): ActionBuilder? {

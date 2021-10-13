@@ -3,7 +3,9 @@ package rxf.server
 import one.xio.HttpHeaders
 import one.xio.HttpMethod
 import one.xio.HttpStatus
-import rxf.server.web.inf.ProtocolMethodDispatch
+import one.xio.MimeType
+import vec.macros.Pai2
+import vec.macros.t2
 import java.io.IOException
 import java.net.InetAddress
 import java.nio.ByteBuffer
@@ -13,6 +15,8 @@ import java.nio.channels.SocketChannel
 import java.util.*
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.text.Charsets.UTF_8
+
 
 /**
  * this is a utility class to parse a HttpRequest header or
@@ -30,30 +34,23 @@ import java.util.concurrent.atomic.AtomicReference
  * grep operations to suit against a captured
  * [ByteBuffer] as needed (still cheap)
  *
- *
  * preload addHeaderInterest and cookies, send $res
  * and HttpRequest initial onRead for .apply()
- *
- *
- *
- *
- *
  *
  * User: jim
  * Date: 5/19/12
  * Time: 10:00 PM
  */
 open class Rfc822HeaderState {
-    var headerInterest = AtomicReference<Array<String?>?>()
-    var cookies: Pair<*, *>? = null
 
-    /**
-     * the source route from the active socket.
-     *
-     *
-     * this is necessary to look up  GeoIpService queries among other things
-     */
-    private var sourceRoute = AtomicReference<InetAddress>()
+    val _hdrIntrest = AtomicReference<Array<String>>()
+    var headerInterest: Array<String>
+        inline get() = _hdrIntrest.get()
+        inline set(x) = _hdrIntrest.set(x)
+
+
+    var cookies: Pai2<*, *>? = null
+
 
     /**
      * stored buffer from which things are parsed and later grepped.
@@ -61,12 +58,16 @@ open class Rfc822HeaderState {
      *
      * NOT atomic.
      */
-    private var headerBuf: ByteBuffer? = null
+    var headerBuf: ByteBuffer? = null
+    val _headerStrings = AtomicReference<MutableMap<String?, String>?>()
 
     /**
      * parsed valued post-[.apply]
      */
-    private var headerStrings = AtomicReference<MutableMap<String?, String>?>()
+    var headerStrings
+        get() = _headerStrings.get()
+        set(v) = _headerStrings.set(v)
+
 
     /**
      * dual purpose HTTP protocol header token found on the first line of a HttpRequest/$res in the first position.
@@ -90,13 +91,6 @@ open class Rfc822HeaderState {
      */
     private var pathRescode = AtomicReference<String>()
 
-    /**
-     * Dual purpose HTTP protocol header token found on the first line of a HttpRequest/$res in the third position.
-     *
-     *
-     * Contains either the protocol (HttpRequest) or a status line message ($res)
-     */
-    private var protocolStatus = AtomicReference<String>()
 
     /**
      * passed in on 0.0.0.0 dispatch to tie the header state to an nio object, to provide a socketchannel handle, and to lookup up the incoming source route
@@ -130,62 +124,36 @@ open class Rfc822HeaderState {
      *
      * @param headerInterest keys placed in     [.headerInterest] which will be parsed on [.apply]
      */
-    constructor(vararg headerInterest: String?) {
-        this.headerInterest.set(headerInterest)
+    constructor(vararg h: String) {
+        headerInterest = h as Array<String>
     }
 
-    fun headerString(httpHeader: HttpHeaders): String? {
-        return headerString(httpHeader.header) //To change body of created methods use File | Settings | File Templates.
-    }
 
     /**
      * simple wrapper for HttpRequest setters
      */
-    fun `$req`(): HttpRequest {
-        return if (HttpRequest::class.java == this.javaClass) this as HttpRequest else HttpRequest(this)
-    }
+    inline val `$req` get() = (this as? HttpRequest) ?: HttpRequest(this)
 
     /**
      * simple wrapper for HttpRequest setters
      */
-    fun `$res`(): HttpResponse {
-        return if (HttpResponse::class.java == this.javaClass) this as HttpResponse else HttpResponse(this)
-    }
+    inline val `$res` get() = (this as? HttpResponse) ?: HttpResponse(this)
 
-    override fun toString(): String {
-        return "Rfc822HeaderState{" +
-                "headerInterest=" + headerInterest +
-                ", cookies=" + cookies +
-                ", sourceRoute=" + sourceRoute +
-                ", headerBuf=" + headerBuf +
-                ", headerStrings=" + headerStrings +
-                ", methodProtocol=" + methodProtocol +
-                ", pathRescode=" + pathRescode +
-                ", protocolStatus=" + protocolStatus +
-                ", sourceKey=" + sourceKey +
-                '}'
-    }
-
-    open fun <T> `as`(clazz: Class<T>): T {
-        return if (clazz == HttpResponse::class.java) {
-            `$res`() as T
-        } else if (clazz == HttpRequest::class.java) {
-            `$req`() as T
-        } else if (clazz == String::class.java) {
-            toString() as T
-        } else if (clazz == ByteBuffer::class.java) {
-            throw UnsupportedOperationException(
-                "must promote to as((HttpRequest|HttpResponse)).class first")
-        } else throw UnsupportedOperationException("don't know how to infer " + clazz.canonicalName)
+    open fun <T> `as`(clazz: Class<T>): T = when (clazz) {
+        HttpResponse::class.java -> `$res` as T
+        HttpRequest::class.java -> `$req` as T
+        String::class.java -> this.toString() as T
+        ByteBuffer::class.java -> throw UnsupportedOperationException("must promote to as((HttpRequest|HttpResponse)).class first")
+        else -> throw UnsupportedOperationException("don't know how to infer " + clazz.canonicalName)
     }
 
     /**
      * terminates header keys
      */
-    fun headerString(hdrEnum: HttpHeaders, s: String): Rfc822HeaderState {
-        return headerString(hdrEnum.header.trim { it <= ' ' },
-            s) //To change body of created methods use File | Settings | File Templates.
-    }
+    fun headerString(hdrEnum: HttpHeaders, s: String): Rfc822HeaderState =
+        headerString(hdrEnum.header.trim { it <= ' ' }, s)
+
+    fun headerString(httpHeader: HttpHeaders): String? = headerString(httpHeader.header)
 
     /**
      * assigns a state parser to a  [SelectionKey] and attempts to grab the source route froom the active socket.
@@ -198,24 +166,12 @@ open class Rfc822HeaderState {
      * @throws IOException
      */
     @Throws(IOException::class)
-    fun sourceKey(key: SelectionKey): Rfc822HeaderState {
+    fun sourceKey(key: SelectionKey): Rfc822HeaderState = apply {
         sourceKey.set(key)
         val channel = sourceKey.get().channel() as SocketChannel
         sourceRoute.set(channel.socket().inetAddress)
-        return this
     }
 
-    /**
-     * the actual [ByteBuffer] associated with the state.
-     *
-     *
-     * this buffer must start at position 0 in most cases requiring [ReadableByteChannel.read]
-     *
-     * @return what is sent to [.apply]
-     */
-    fun headerBuf(): ByteBuffer? {
-        return headerBuf
-    }
 
     /**
      * this is a grep of the full header state to find one or more headers of a given name.
@@ -228,12 +184,12 @@ open class Rfc822HeaderState {
      */
     fun getHeadersNamed(header: String?): List<String> {
         val charBuffer = CharBuffer.wrap(header)
-        val henc: ByteBuffer = HttpMethod.Companion.UTF8.encode(charBuffer)
+        val henc: ByteBuffer = UTF_8.encode(charBuffer)
         var ret = headerExtract(henc)
         val objects: MutableList<String> = ArrayList()
         while (null != ret) {
-            objects.add(HttpMethod.Companion.UTF8.decode(ret.a).toString())
-            ret = ret.getB()
+            objects.add(UTF_8.decode(ret.first).toString())
+            ret = ret.second as Pai2<ByteBuffer?, out Pai2<*, *>>
         }
         return objects
     }
@@ -249,10 +205,10 @@ open class Rfc822HeaderState {
      */
     fun getHeadersNamed(theHeader: HttpHeaders): List<String> {
         var ret = headerExtract(theHeader.token)
-        val objects: MutableList<String> = ArrayList()
+        val objects = ArrayList<String>()
         while (null != ret) {
-            objects.add(HttpMethod.Companion.UTF8.decode(ret.a).toString())
-            ret = ret.getB()
+            objects.add(UTF_8.decode(ret.first).toString())
+            ret = ret.second as Pai2<ByteBuffer?, out Pai2<*, *>>
         }
         return objects
     }
@@ -263,11 +219,11 @@ open class Rfc822HeaderState {
      * @param hdrEnc a header token
      * @return a backwards singley-linked list of pairs.
      */
-    fun headerExtract(hdrEnc: ByteBuffer?): Pair<ByteBuffer?, out Pair<*, *>>? {
+    fun headerExtract(hdrEnc: ByteBuffer?): Pai2<ByteBuffer?, out Pai2<*, *>>? {
         var hdrEnc = hdrEnc
         hdrEnc = hdrEnc!!.asReadOnlyBuffer().rewind() as ByteBuffer
-        val buf = BlobAntiPatternObject.avoidStarvation(headerBuf())
-        var ret: Pair<ByteBuffer?, out Pair<*, *>>? = null
+        val buf = BlobAntiPatternObject.avoidStarvation(headerBuf)
+        var ret: Pai2<ByteBuffer?, out Pai2<*, *>>? = null
         val hdrTokenEnd = hdrEnc.limit()
         while (buf!!.hasRemaining()) {
             var begin = buf.position()
@@ -280,9 +236,9 @@ open class Rfc822HeaderState {
                     begin = buf.position()
                     while (buf.hasRemaining()) {
                         var endl = buf.position()
-                        var b: Byte
+                        var b: Byte = 0
                         while (buf.hasRemaining() && LF.code.toByte() != buf.get().also { b = it }) {
-                            if (!Character.isWhitespace(b.toInt())) {
+                            if (!Character.isWhitespace(b.toInt().toChar())) {
                                 endl = buf.position()
                             }
                         }
@@ -292,12 +248,12 @@ open class Rfc822HeaderState {
                             if (!Character.isWhitespace(b.toInt())) {
                                 val outBuf =
                                     (buf.reset() as ByteBuffer).duplicate().position(begin).limit(endl) as ByteBuffer
-                                while (outBuf.hasRemaining()
-                                    && Character.isWhitespace((outBuf.mark() as ByteBuffer).get().toInt())
+                                while (outBuf.hasRemaining() && Character.isWhitespace((outBuf.mark() as ByteBuffer).get()
+                                        .toInt())
                                 ) {
                                 }
                                 outBuf.reset() //ltrim()
-                                ret = Pair<ByteBuffer?, Pair<ByteBuffer, out Pair<*, *>>>(outBuf, ret)
+                                ret = outBuf t2 ret as Pai2<*, *>
                                 break
                             }
                         }
@@ -305,8 +261,7 @@ open class Rfc822HeaderState {
                 }
             }
             if (buf.remaining() > hdrTokenEnd + 3) {
-                while (buf.hasRemaining() && LF.code.toByte() != buf.get()) {
-                }
+                while (buf.hasRemaining() && LF.code.toByte() != buf.get());
             }
         }
         return ret
@@ -319,12 +274,12 @@ open class Rfc822HeaderState {
      * [.headerInterest] contains a list of addHeaderInterest that will be converted to a [Map] and available via [Rfc822HeaderState.headerStrings]
      *
      *
-     * currently this is  done inside of [ProtocolMethodDispatch] surrounding [com.google.web.bindery.requestfactory.server.SimpleRequestProcessor.process]
+     * currently this is done inside of [ProtocolMethodDispatch] surrounding [com.google.web.bindery.requestfactory.server.SimpleRequestProcessor.process]
      *
      * @param cursor
      * @return this
      */
-    fun apply(cursor: ByteBuffer): Rfc822HeaderState {
+    operator fun invoke(cursor: ByteBuffer): Rfc822HeaderState {
         if (!cursor.hasRemaining()) {
             cursor.flip()
         }
@@ -332,53 +287,46 @@ open class Rfc822HeaderState {
         var slice = cursor.duplicate().slice()
         while (slice.hasRemaining() && SPC.code.toByte() != slice.get()) {
         }
-        methodProtocol.set(HttpMethod.Companion.UTF8.decode(slice.flip() as ByteBuffer).toString().trim { it <= ' ' })
+        methodProtocol.set(UTF_8.decode(slice.flip() as ByteBuffer).toString().trim { it <= ' ' })
         while (cursor.hasRemaining() && SPC.code.toByte() != cursor.get()) {
             //method/proto
         }
         slice = cursor.slice()
         while (slice.hasRemaining() && SPC.code.toByte() != slice.get()) {
         }
-        pathRescode.set(HttpMethod.Companion.UTF8.decode(slice.flip() as ByteBuffer).toString().trim { it <= ' ' })
+        pathRescode.set(UTF_8.decode(slice.flip() as ByteBuffer).toString().trim { it <= ' ' })
         while (cursor.hasRemaining() && SPC.code.toByte() != cursor.get()) {
         }
         slice = cursor.slice()
         while (slice.hasRemaining() && LF.code.toByte() != slice.get()) {
         }
-        protocolStatus.set(HttpMethod.Companion.UTF8.decode(slice.flip() as ByteBuffer).toString().trim { it <= ' ' })
+        protocolStatus = (UTF_8.decode(slice.flip() as ByteBuffer).toString().trim { it <= ' ' })
         headerBuf = null
         val wantsCookies = null != cookies
-        val wantsHeaders = wantsCookies || 0 < headerInterest.get()!!.size
+        val wantsHeaders = wantsCookies || 0 < headerInterest.size
         headerBuf = moveCaretToDoubleEol(cursor).duplicate().flip() as ByteBuffer
-        headerStrings()!!.clear()
+        headerStrings!!.clear()
         if (wantsHeaders) {
-            val headerMap: Map<String?, IntArray?> = HttpHeaders.Companion.getHeaders(
-                headerBuf!!.rewind() as ByteBuffer)
-            headerStrings.set(LinkedHashMap())
-            for (o in headerInterest.get()!!) {
-                val o1 = headerMap[o]
-                if (null != o1) {
-                    headerStrings.get()!![o] =
-                        HttpMethod.Companion.UTF8.decode(headerBuf!!.duplicate().clear().position(
-                            o1[0]).limit(o1[1]) as ByteBuffer)
-                            .toString().trim { it <= ' ' }
-                }
+            val headerMap =
+                HttpHeaders.getHeaders(headerBuf!!.rewind() as ByteBuffer)
+            headerStrings = (LinkedHashMap())
+            for (o in headerInterest) {
+                val o1 = (headerMap[o]) ?: continue
+                headerStrings!![o] =
+                    UTF_8.decode(headerBuf!!.duplicate().clear().position(o1.first).limit(o1.second) as ByteBuffer)
+                        .toString().trim { it <= ' ' }
             }
         }
         return this
     }
 
-    fun headerInterest(vararg replaceInterest: HttpHeaders?): Rfc822HeaderState {
+    fun headerInterest(vararg replaceInterest: HttpHeaders): Rfc822HeaderState {
         val strings = staticHeaderStrings(*replaceInterest)
-        return headerInterest(*strings)
-    }
-
-    fun headerInterest(vararg replaceInterest: String?): Rfc822HeaderState {
-        headerInterest.set(replaceInterest)
+        headerInterest = (strings)
         return this
     }
 
-    fun addHeaderInterest(vararg appendInterest: HttpHeaders?): Rfc822HeaderState {
+    fun addHeaderInterest(vararg appendInterest: HttpHeaders): Rfc822HeaderState {
         val strings = staticHeaderStrings(*appendInterest)
         return addHeaderInterest(*strings)
     }
@@ -402,22 +350,21 @@ open class Rfc822HeaderState {
     fun addHeaderInterest(vararg newInterest: String?): Rfc822HeaderState {
 
         //adds a few more instructions than the blind append but does what was desired
-        val theCow: MutableSet<String?> = CopyOnWriteArraySet(Arrays.asList(*headerInterest.get()))
+        val theCow = CopyOnWriteArraySet(Arrays.asList(*headerInterest))
         theCow.addAll(Arrays.asList(*newInterest))
         val strings = theCow.toTypedArray()
         Arrays.sort(strings)
-        headerInterest.set(strings)
+        headerInterest = (strings)
         return this
     }
 
     /**
-     * @return
-     * @see .headerInterest
+     * the source route from the active socket.
+     *
+     *
+     * this is necessary to look up  GeoIpService queries among other things
      */
-    fun headerInterest(): Array<String?>? {
-        headerInterest.compareAndSet(null, arrayOf())
-        return headerInterest.get()
-    }
+    private var sourceRoute = AtomicReference<InetAddress>()
 
     /**
      * @return inet4 addr
@@ -433,7 +380,7 @@ open class Rfc822HeaderState {
      * @param sourceRoute an internet ipv4 address
      * @return self
      */
-    fun sourceRoute(sourceRoute: InetAddress): Rfc822HeaderState {
+    fun sourceRoute(sourceRoute: InetAddress) = apply {
         this.sourceRoute.set(sourceRoute)
         return this
     }
@@ -451,37 +398,6 @@ open class Rfc822HeaderState {
     fun headerBuf(headerBuf: ByteBuffer?): Rfc822HeaderState {
         this.headerBuf = headerBuf
         return this
-    }
-
-    /**
-     * holds the values parsed during [.apply] and holds the key-values created as addHeaderInterest in
-     * [.asRequestHeaderByteBuffer] and [.asResponseHeaderByteBuffer]
-     *
-     * @return
-     */
-    fun headerStrings(headerStrings: MutableMap<String?, String>?): Rfc822HeaderState {
-        this.headerStrings.set(headerStrings)
-        return this
-    }
-
-    /**
-     * header values which are pre-parsed during [.apply].
-     *
-     *
-     * addHeaderInterest in the HttpRequest/HttpResponse not so named in this list will be passed over.
-     *
-     *
-     * the value of a header appearing more than once is unspecified.
-     *
-     *
-     * multiple occuring headers require [.getHeadersNamed]
-     *
-     * @return the parsed values designated by the [.headerInterest] list of keys.  addHeaderInterest present in [.headerInterest]
-     * not appearing in the [ByteBuffer] input will not be in this map.
-     */
-    fun headerStrings(): MutableMap<String?, String>? {
-        headerStrings.compareAndSet(null, LinkedHashMap())
-        return headerStrings.get()
     }
 
     /**
@@ -517,28 +433,21 @@ open class Rfc822HeaderState {
      * @return
      * @see .pathRescode
      */
-    fun pathResCode(pathRescode: String): Rfc822HeaderState {
+    fun pathResCode(pathRescode: String): Rfc822HeaderState = apply {
         this.pathRescode.set(pathRescode)
-        return this
     }
 
-    /**
-     * Dual purpose HTTP protocol header token found on the first line of a HttpRequest/HttpResponse in the third position.
-     *
-     *
-     * Contains either the protocol (HttpRequest) or a status line message (HttpResponse)
-     */
-    fun protocolStatus(): String? {
-        return protocolStatus.get()
-    }
 
     /**
-     * @see Rfc822HeaderState.protocolStatus
+     * Dual purpose HTTP protocol header token found on the first line of a HttpRequest/$res in the third position.
+     *
+     *
+     * Contains either the protocol (HttpRequest) or a status line message ($res)
      */
-    fun protocolStatus(protocolStatus: String): Rfc822HeaderState {
-        this.protocolStatus.set(protocolStatus)
-        return this
-    }
+    private val _protocolStatus = AtomicReference<String?>()
+    var protocolStatus
+        get() = _protocolStatus.get()
+        set(v) = _protocolStatus.set(v)
 
     /**
      * writes method, headersStrings, and cookieStrings to a [String] suitable for Response addHeaderInterest
@@ -551,9 +460,9 @@ open class Rfc822HeaderState {
      * @return http addHeaderInterest for use with http 1.1
      */
     fun asResponseHeaderString(): String {
-        var protocol = ((if (null == methodProtocol()) HTTP_1_1 else methodProtocol()) + SPC + pathResCode() + SPC
-                + protocolStatus() + CRLF)
-        for ((key, value) in headerStrings()!!) {
+        var protocol =
+            ((if (null == methodProtocol()) HTTP_1_1 else methodProtocol()) + SPC + pathResCode() + SPC + protocolStatus + CRLF)
+        for ((key, value) in headerStrings!!) {
             protocol += key + COLONSPC + value + CRLF
         }
         protocol += CRLF
@@ -572,7 +481,7 @@ open class Rfc822HeaderState {
      */
     fun asResponseHeaderByteBuffer(): ByteBuffer {
         val protocol = asResponseHeaderString()
-        return ByteBuffer.wrap(protocol.toByteArray(HttpMethod.Companion.UTF8))
+        return ByteBuffer.wrap(protocol.toByteArray(UTF_8))
     }
 
     /**
@@ -585,10 +494,9 @@ open class Rfc822HeaderState {
      */
     fun asRequestHeaderString(): String {
         val builder = StringBuilder()
-        builder.append(methodProtocol()).append(SPC).append(pathResCode()).append(SPC).append(
-            if (null == protocolStatus()) HTTP_1_1 else protocolStatus()).append(CRLF)
-        for ((key, value) in headerStrings()!!) builder.append(key).append(COLONSPC).append(
-            value).append(CRLF)
+        builder.append(methodProtocol()).append(SPC).append(pathResCode()).append(SPC)
+            .append(if (null == protocolStatus) HTTP_1_1 else protocolStatus).append(CRLF)
+        for ((key, value) in headerStrings!!) builder.append(key).append(COLONSPC).append(value).append(CRLF)
         builder.append(CRLF)
         return builder.toString()
     }
@@ -603,7 +511,7 @@ open class Rfc822HeaderState {
      */
     fun asRequestHeaderByteBuffer(): ByteBuffer {
         val protocol = asRequestHeaderString()
-        return ByteBuffer.wrap(protocol.toByteArray(HttpMethod.Companion.UTF8))
+        return ByteBuffer.wrap(protocol.toByteArray(UTF_8))
     }
 
     /**
@@ -613,7 +521,7 @@ open class Rfc822HeaderState {
      * @return the parsed value from the [.headerStrings] map
      */
     fun headerString(headerKey: String?): String? {
-        return headerStrings()!![headerKey] //To change body of created methods use File | Settings | File Templates.
+        return headerStrings!![headerKey]
     }
 
     /**
@@ -636,7 +544,7 @@ open class Rfc822HeaderState {
      * @see .headerStrings
      */
     fun headerString(key: String?, `val`: String): Rfc822HeaderState {
-        headerStrings()!![key] = `val`
+        headerStrings!![key] = `val`
         return this
     }
 
@@ -645,12 +553,16 @@ open class Rfc822HeaderState {
      * @see .sourceKey
      */
     fun sourceKey(): SelectionKey {
-        return sourceKey.get() //To change body of created methods use File | Settings | File Templates.
+        return sourceKey.get()
+    }
+
+    override fun toString(): String {
+        return "Rfc822HeaderState(headerInterest=$headerInterest, cookies=$cookies, sourceRoute=$sourceRoute, headerBuf=$headerBuf, headerStrings=$headerStrings, methodProtocol=$methodProtocol, pathRescode=$pathRescode, protocolStatus=$protocolStatus, sourceKey=$sourceKey)"
     }
 
     class HttpRequest(proto: Rfc822HeaderState) : Rfc822HeaderState(proto) {
-        private var cookieInterest: Array<ByteBuffer?>?
-        private var parsedCookies: Pair<Pair<ByteBuffer, ByteBuffer>, out Pair<*, *>>? = null
+        private var cookieInterest: Array<ByteBuffer?>? = null
+        private var parsedCookies: Pai2<Pai2<ByteBuffer, ByteBuffer>, out Pai2<*, *>>? = null
 
         init {
             val protocol = protocol()
@@ -680,11 +592,13 @@ open class Rfc822HeaderState {
         }
 
         fun protocol(): String? {
-            return protocolStatus() //To change body of overridden methods use File | Settings | File Templates.
+            return protocolStatus //To change body of overridden methods use File | Settings | File Templates.
         }
 
         fun protocol(protocol: String?): HttpRequest {
-            return protocolStatus(protocol!!) as HttpRequest //To change body of overridden methods use File | Settings | File Templates.
+            return apply {
+                protocolStatus = (protocol!!)
+            } //To change body of overridden methods use File | Settings | File Templates.
         }
 
         override fun toString(): String {
@@ -709,16 +623,16 @@ open class Rfc822HeaderState {
          */
         fun cookieInterest(vararg keys: String): HttpRequest {
             if (0 == keys.size) { //rare event
-                val strings: MutableSet<String?> = CopyOnWriteArraySet(Arrays.asList(*headerInterest()))
+                val strings: MutableSet<String> = CopyOnWriteArraySet(Arrays.asList(*headerInterest))
                 strings.remove(HttpHeaders.Cookie.header)
-                headerInterest(*strings.toTypedArray())
+                headerInterest = strings.toTypedArray()
                 cookieInterest = null
             } else {
                 addHeaderInterest(HttpHeaders.Cookie)
                 cookieInterest = arrayOfNulls(keys.size)
                 for (i in keys.indices) {
                     val s = keys[i]
-                    cookieInterest!![i] = ByteBuffer.wrap(s.intern().toByteArray(HttpMethod.Companion.UTF8))
+                    cookieInterest!![i] = ByteBuffer.wrap(s.intern().toByteArray(UTF_8))
                 }
             }
             return this
@@ -727,23 +641,24 @@ open class Rfc822HeaderState {
         /**
          * @return slist of cookie pairs
          */
-        fun parsedCookies(): Pair<Pair<ByteBuffer, ByteBuffer>, out Pair<*, *>>? {
+        fun parsedCookies(): Pai2<Pai2<ByteBuffer, ByteBuffer>, out Pai2<*, *>>? {
             if (null != parsedCookies) return parsedCookies else {
                 cookieInterest = if (null == cookieInterest) EMPTY_BBAR else cookieInterest
                 var p1 = headerExtract(HttpHeaders.Cookie.token)
                 parsedCookies = null
                 while (null != p1) {
-                    val p2: Pair<Pair<ByteBuffer, ByteBuffer>, out Pair<*, *>> =
-                        CookieRfc6265Util.Companion.parseCookie(p1.a)
+                    val p2: Pai2<Pai2<ByteBuffer, ByteBuffer>, out Pai2<*, *>> =
+                        CookieRfc6265Util.parseCookie(p1.second as ByteBuffer) as Pai2<Pai2<ByteBuffer, ByteBuffer>, out Pai2<*, *>>
                     if (parsedCookies != null) { //seek to null of prev.
                         var p3 = parsedCookies
                         var p4 = parsedCookies
-                        while (p3 != null) p3 = p3.also { p4 = it }.getB()
-                        parsedCookies = Pair<Pair<ByteBuffer, ByteBuffer>, Pair<*, *>>(p4.getA(), p2)
+                        while (p3 != null) p3 =
+                            p3.also { p4 = it }.second as Pai2<Pai2<ByteBuffer, ByteBuffer>, out Pai2<*, *>>
+                        parsedCookies = Pai2<Pai2<ByteBuffer, ByteBuffer>, Pai2<*, *>>(p4!!.first, p2)
                     } else {
                         parsedCookies = p2
                     }
-                    p1 = p1.getB()
+                    p1 = p1.second as Pai2<ByteBuffer?, out Pai2<*, *>>
                 }
             }
             return parsedCookies
@@ -756,34 +671,33 @@ open class Rfc822HeaderState {
          * @return stringy cookie map
          */
         fun getCookies(vararg keys: String): Map<String, String> {
-            val k: Array<ByteBuffer?>?
+            val k: Array<ByteBuffer?>
             if (0 >= keys.size) {
-                k = cookieInterest
+                k = cookieInterest!!
             } else {
                 k = arrayOfNulls(keys.size)
                 for (i in keys.indices) {
                     val key = keys[i]
-                    k[i] = ByteBuffer.wrap(key.intern().toByteArray(HttpMethod.Companion.UTF8)) as ByteBuffer
+                    k[i] = ByteBuffer.wrap(key.intern().toByteArray(UTF_8)) as ByteBuffer
                 }
             }
             val ret: MutableMap<String, String> = TreeMap()
             var pair = parsedCookies()
             val kl: MutableList<ByteBuffer?> = LinkedList(Arrays.asList(*k))
             while (null != pair && !kl.isEmpty()) {
-                val a1 = pair.a
-                val ckey = a1.a as ByteBuffer
+                val a1 = pair.first
+                val ckey = a1.first
                 val ki = kl.listIterator()
                 while (ki.hasNext()) {
                     val interestKey = ki.next()
                     if (interestKey == ckey) {
-                        ret[HttpMethod.Companion.UTF8.decode(interestKey).toString().intern()] =
-                            HttpMethod.Companion.UTF8.decode(a1.b)
-                                .toString()
+                        ret[UTF_8.decode(interestKey).toString().intern()] =
+                            UTF_8.decode(a1.second).toString()
                         ki.remove()
                         break
                     }
                 }
-                pair = pair.getB()
+                pair = pair.second as Pai2<Pai2<ByteBuffer, ByteBuffer>, out Pai2<*, *>>
             }
             return ret
         }
@@ -795,16 +709,16 @@ open class Rfc822HeaderState {
          * @return cookie value
          */
         fun getCookie(key: String): String? {
-            val k = ByteBuffer.wrap(key.intern().toByteArray(HttpMethod.Companion.UTF8)).mark() as ByteBuffer
+            val k = ByteBuffer.wrap(key.intern().toByteArray(UTF_8)).mark() as ByteBuffer
             var pair = parsedCookies()
             while (null != pair) {
-                val a1 = pair.a
-                val a = a1.a as ByteBuffer
+                val a1 = pair.first
+                val a = a1.first
                 if (a == k) {
-                    return HttpMethod.Companion.UTF8.decode(BlobAntiPatternObject.avoidStarvation(a1
-                        .b as ByteBuffer)).toString()
+                    return UTF_8.decode(BlobAntiPatternObject.avoidStarvation(MimeType.b as ByteBuffer))
+                        .toString()
                 }
-                pair = pair.getB()
+                pair = pair.second as Pai2<Pai2<ByteBuffer, ByteBuffer>, out Pai2<*, *>>
             }
             return null
         }
@@ -844,7 +758,7 @@ open class Rfc822HeaderState {
         }
 
         fun status(): String {
-            return protocolStatus()!!
+            return protocolStatus!!
         }
 
         fun protocol(protocol: String?): HttpResponse {
@@ -859,8 +773,8 @@ open class Rfc822HeaderState {
             return pathResCode(resCode.name.substring(1)) as HttpResponse
         }
 
-        fun status(status: String?): HttpResponse {
-            return protocolStatus(status!!) as HttpResponse
+        fun status(status: String?): HttpResponse = apply {
+            protocolStatus = (status!!)
         }
 
         /**
@@ -869,9 +783,9 @@ open class Rfc822HeaderState {
          * @param httpStatus
          * @return
          */
-        fun status(httpStatus: HttpStatus): HttpResponse {
-            return (protocolStatus(httpStatus.caption) as HttpResponse).resCode(httpStatus)
-        }
+        fun status(httpStatus: HttpStatus): HttpResponse = apply {
+            protocolStatus = (httpStatus.caption)
+        }.resCode(httpStatus)
 
         override fun <T> `as`(clazz: Class<T>): T {
             if (ByteBuffer::class.java == clazz) {
@@ -893,25 +807,20 @@ open class Rfc822HeaderState {
         const val CRLF = "" + CR + LF
         private const val COLON = ':'
         const val COLONSPC = "" + COLON + SPC
-        fun staticHeaderStrings(vararg replaceInterest: HttpHeaders): Array<String?> {
-            val strings = arrayOfNulls<String>(replaceInterest.size)
-            for (i in strings.indices) {
-                strings[i] = replaceInterest[i].header
-            }
-            return strings
-        }
+        fun staticHeaderStrings(vararg replaceInterest: HttpHeaders) =
+            Array(replaceInterest.size) { replaceInterest[it].header }
+    }
 
-        fun moveCaretToDoubleEol(buffer: ByteBuffer): ByteBuffer {
-            var distance: Int
-            var eol = buffer.position()
-            do {
-                val prev = eol
-                while (buffer.hasRemaining() && LF.code.toByte() != buffer.get());
-                eol = buffer.position()
-                distance = Math.abs(eol - prev)
-                if (2 == distance && CR.code.toByte() == buffer[eol - 2]) break
-            } while (buffer.hasRemaining() && 1 < distance)
-            return buffer
-        }
+    fun moveCaretToDoubleEol(buffer: ByteBuffer): ByteBuffer {
+        var distance: Int
+        var eol = buffer.position()
+        do {
+            val prev = eol
+            while (buffer.hasRemaining() && LF.code.toByte() != buffer.get());
+            eol = buffer.position()
+            distance = Math.abs(eol - prev)
+            if (2 == distance && CR.code.toByte() == buffer[eol - 2]) break
+        } while (buffer.hasRemaining() && 1 < distance)
+        return buffer
     }
 }

@@ -3,6 +3,7 @@ package rxf.server
 import one.xio.HttpHeaders
 import one.xio.HttpMethod
 import rxf.server.driver.RxfBootstrap
+import vec.util.rem
 import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -26,18 +27,18 @@ import java.util.concurrent.atomic.AtomicInteger
 object BlobAntiPatternObject {
     val RXF_CACHED_THREADPOOL = "true" == RxfBootstrap.getVar("RXF_CACHED_THREADPOOL", "false")
     val CONNECTION_POOL_SIZE = RxfBootstrap.getVar("RXF_CONNECTION_POOL_SIZE", "20")!!.toInt()
-    val CE_TERMINAL = "\n0\r\n\r\n".toByteArray(HttpMethod.Companion.UTF8)
+    val CE_TERMINAL = "\n0\r\n\r\n".toByteArray(Charsets.UTF_8)
 
     //"premature optimization" s/mature/view/
-    val STATIC_VF_HEADERS: Array<String?> = Rfc822HeaderState.Companion.staticHeaderStrings(HttpHeaders.ETag,
+    val STATIC_VF_HEADERS= Rfc822HeaderState.Companion.staticHeaderStrings(HttpHeaders.ETag,
         HttpHeaders.`Content$2dLength`,
         HttpHeaders.`Transfer$2dEncoding`)
-    val STATIC_JSON_SEND_HEADERS: Array<String?> = Rfc822HeaderState.Companion.staticHeaderStrings(HttpHeaders.ETag,
+    val STATIC_JSON_SEND_HEADERS= Rfc822HeaderState.Companion.staticHeaderStrings(HttpHeaders.ETag,
         HttpHeaders.`Content$2dLength`,
         HttpHeaders.`Content$2dEncoding`)
-    val STATIC_CONTENT_LENGTH_ARR: Array<String?> =
+    val STATIC_CONTENT_LENGTH_ARR=
         Rfc822HeaderState.Companion.staticHeaderStrings(HttpHeaders.`Content$2dLength`)
-    val HEADER_TERMINATOR = "\r\n\r\n".toByteArray(HttpMethod.Companion.UTF8)
+    val HEADER_TERMINATOR = "\r\n\r\n".toByteArray(Charsets.UTF_8)
     val ATOMIC_INTEGER = AtomicInteger(0)
     val REALTIME_CUTOFF = RxfBootstrap.getVar("RXF_REALTIME_CUTOFF", "3")!!.toInt()
     const val PCOUNT = "-0xdeadbeef.2"
@@ -47,10 +48,10 @@ object BlobAntiPatternObject {
     private val couchConnections = LinkedBlockingDeque<SocketChannel?>(CONNECTION_POOL_SIZE)
     var isDEBUG_SENDJSON = System.getenv().containsKey("DEBUG_SENDJSON")
     val REALTIME_UNIT = TimeUnit.valueOf(RxfBootstrap.getVar("RXF_REALTIME_UNIT",
-        if (isDEBUG_SENDJSON) TimeUnit.HOURS.name else TimeUnit.SECONDS.name)!!)
+        ((isDEBUG_SENDJSON) % TimeUnit.HOURS.name) ?: TimeUnit.SECONDS.name)!!)
     var upstreamAddress: InetSocketAddress? = null
     var eXECUTOR_SERVICE =
-        if (RXF_CACHED_THREADPOOL) Executors.newCachedThreadPool() else Executors.newFixedThreadPool(Runtime.getRuntime()
+        ((RXF_CACHED_THREADPOOL) % Executors.newCachedThreadPool()) ?: Executors.newFixedThreadPool(Runtime.getRuntime()
             .availableProcessors() + 3)
 
     init {
@@ -65,29 +66,33 @@ object BlobAntiPatternObject {
     }
 
     fun createUpstreamConnection(): SocketChannel? {
+        var ret: SocketChannel? = null
         while (!HttpMethod.Companion.killswitch) {
             val poll = couchConnections.poll()
-            if (null != poll) {
-                // If there was at least one entry, try to use that
-                // Note that we check both connected&&open, its possible to be connected but not open, at least in 1.7.0_45
-                if (poll.isConnected && poll.isOpen) {
-                    return poll
+            when {
+                null != poll -> {
+                    // If there was at least one entry, try to use that
+                    // Note that we check both connected&&open, its possible to be connected but not open, at least in 1.7.0_45
+                    if (poll.isConnected && poll.isOpen) {
+                        ret = poll;break
+                    }
+                    //non null entry, but invalid, continue in loop to grab the next...
                 }
-                //non null entry, but invalid, continue in loop to grab the next...
-            } else {
-                // no recycled connections available for reuse, make a new one
-                try {
-                    val channel = SocketChannel.open(upstreamAddress)
-                    channel.configureBlocking(false)
-                    return channel
-                } catch (e: Exception) {
-                    // if something went wrong in the process of creating the connection, continue in loop...
-                    e.printStackTrace()
+                else -> {
+                    // no recycled connections available for reuse, make a new one
+                    try {
+                        val channel = SocketChannel.open(upstreamAddress)
+                        channel.configureBlocking(false)
+                        ret = channel;break
+                    } catch (e: Exception) {
+                        // if something went wrong in the process of creating the connection, continue in loop...
+                        e.printStackTrace()
+                    }
                 }
             }
         }
         // killswitch, return null
-        return null
+        return ret
     }
 
     fun recycleChannel(channel: SocketChannel?) {
@@ -103,42 +108,32 @@ object BlobAntiPatternObject {
     }
 
     fun <T> deepToString(vararg d: T): String {
-        return Arrays.deepToString(d) + RelaxFactoryServerImpl.Companion.wheresWaldo()
+        return Arrays.deepToString(d) +  HttpMethod.wheresWaldo ()
     }
 
     fun <T> arrToString(vararg d: T): String {
         return Arrays.deepToString(d)
     }
 
-    var receiveBufferSize = 0
-        get(): Int {
-            when (field) {
-                0 -> try {
-                    val socketChannel = createUpstreamConnection()
-                    field = socketChannel!!.socket().receiveBufferSize
-                    recycleChannel(socketChannel)
-                } catch (ignored: IOException) {
-                }finally {
+    val receiveBufferSize by lazy {
 
-                }
-            }
-            return field
-        }
-
-    var sendBufferSize = 0
-        get(): Int {
-            if (0 == field) {
-                try {
-                    val socketChannel = createUpstreamConnection()
-                    field = socketChannel!!.socket().receiveBufferSize
-                    recycleChannel(socketChannel)
-                } catch (ignored: IOException) {
-                }
-            }
-            return field
+        val socketChannel = createUpstreamConnection()
+        socketChannel!!.socket().receiveBufferSize.also {
+            recycleChannel(socketChannel)
         }
 
 
+    }
+
+    val sendBufferSize by lazy {
+        val socketChannel = createUpstreamConnection()
+        socketChannel!!.socket().receiveBufferSize.also {
+            recycleChannel(socketChannel)
+        }
+    }
+
+
+    @JvmStatic
     fun dequote(s: String?): String? {
         var ret = s
         if (null != s && ret!!.startsWith("\"") && ret.endsWith("\"")) {
@@ -153,15 +148,10 @@ object BlobAntiPatternObject {
      * @param buf
      * @return
      */
-    fun avoidStarvation(buf: ByteBuffer?): ByteBuffer? {
-        if (0 == buf!!.remaining()) {
-            buf.rewind()
-        }
-        return buf
-    }
+    fun avoidStarvation(buf: ByteBuffer?): ByteBuffer? = buf?.apply { if (!hasRemaining()) buf.rewind() }
 
     val defaultOrgName: String?
-        get() = CouchNamespace.Companion.COUCH_DEFAULT_ORGNAME
+        get() = UpstreamNamespace.Companion.UPSTREAM_DEFAULT_ORGNAME
 
     /**
      * byte-compare of suffixes

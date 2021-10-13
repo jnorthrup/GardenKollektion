@@ -2,7 +2,6 @@ package rxf.server
 
 import one.xio.AsioVisitor
 import one.xio.HttpHeaders
-import one.xio.HttpMethod
 import rxf.server.BlobAntiPatternObject.receiveBufferSize
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -59,8 +58,6 @@ Connection: close
                         }
                         couchKey.selector().wakeup()
                         couchKey.interestOps(SelectionKey.OP_READ).attach(object : AsioVisitor.Impl() {
-                            val sharedBuf = ByteBuffer.allocateDirect(Math.min(total, receiveBufferSize))
-                            var remaining = total
                             private val browserSlave: AsioVisitor.Impl = object : AsioVisitor.Impl() {
                                 @Throws(Exception::class)
                                 override fun onWrite(key: SelectionKey) {
@@ -77,10 +74,12 @@ Connection: close
                                     }
                                 }
                             }
-
                             init {
                                 browserKey.attach(browserSlave)
                             }
+                            val sharedBuf = ByteBuffer.allocateDirect(total.coerceAtMost(receiveBufferSize))
+
+                            var remaining = total
 
                             @Throws(Exception::class)
                             override fun onRead(couchKey: SelectionKey) {
@@ -101,7 +100,7 @@ Connection: close
 
                     @Throws(Exception::class)
                     override fun onWrite(couchKey: SelectionKey) {
-                        couchConnection!!.write(HttpMethod.Companion.UTF8.encode(req))
+                        couchConnection!!.write(Charsets.UTF_8.encode(req))
                         couchKey.selector().wakeup()
                         couchKey.interestOps(SelectionKey.OP_READ)
                     }
@@ -110,7 +109,7 @@ Connection: close
     }
 
     companion object {
-        val HEADER_INTEREST: Array<String?> =
+        val HEADER_INTEREST=
             Rfc822HeaderState.Companion.staticHeaderStrings(HttpHeaders.`Content$2dLength`)
     }
 }

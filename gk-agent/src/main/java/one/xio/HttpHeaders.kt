@@ -1,5 +1,9 @@
+@file:Suppress("ControlFlowWithEmptyBody")
+
 package one.xio
 
+import vec.macros.Tw1n
+import vec.macros.t2
 import java.net.URLDecoder
 import java.nio.ByteBuffer
 
@@ -1649,12 +1653,10 @@ enum class HttpHeaders {
      */
     `WWW$2dAuthenticate`, `X$2dForwarded$2dFor`;
 
-    private val header = URLDecoder.decode(name.replace('$', '%'))
-    val token: ByteBuffer = HttpMethod.Companion.UTF8.encode(header)
+    val header by lazy { URLDecoder.decode(name.replace('$', '%')).intern() }
+    val token: ByteBuffer = Charsets.UTF_8.encode(header)
     var tokenLen = token.limit()
-    fun getHeader(): String {
-        return header.intern()
-    }
+
 
     /**
      * @param slice
@@ -1669,7 +1671,7 @@ enum class HttpHeaders {
     fun recognize(buffer: ByteBuffer): Boolean {
         val i = buffer.position()
         var ret = false
-        if (buffer[tokenLen + i] and 0xff == ':'.code) {
+        if (buffer[tokenLen + i].toUInt() == ':'.code.toUInt()) {
             var j = 0
             while (j < tokenLen && token[j] == buffer[i + j]) {
                 j++
@@ -1684,26 +1686,26 @@ enum class HttpHeaders {
          * @param headers bytebuf rfc822
          * @return
          */
-        fun getHeaders(headers: ByteBuffer): Map<String?, IntArray?> {
+        fun getHeaders(headers: ByteBuffer): Map<String, Tw1n<Int>> {
             headers.rewind()
             val l = headers.limit()
-            val linkedHashMap: MutableMap<String?, IntArray?> = LinkedHashMap<Any?, Any?>()
-            while (headers.hasRemaining() && '\n'.code.toByte() != headers.get());
-            while (headers.hasRemaining()) {
-                val p1 = headers.position()
-                while (headers.hasRemaining() && ':'.code.toByte() != headers.get());
-                val p2 = headers.position()
+            return linkedMapOf<String,Tw1n<Int>>().apply {
                 while (headers.hasRemaining() && '\n'.code.toByte() != headers.get());
-                val p3 = headers.position()
-                val key: String =
-                    HttpMethod.Companion.UTF8.decode(headers.position(p1).limit(p2 - 1) as ByteBuffer).toString()
-                        .trim { it <= ' ' }
-                if (key.length > 0) {
-                    linkedHashMap[key] = intArrayOf(p2, p3)
+                while (headers.hasRemaining()) {
+                    val p1 = headers.position()
+                    while (headers.hasRemaining() && ':'.code.toByte() != headers.get());
+                    val p2 = headers.position()
+                    while (headers.hasRemaining() && '\n'.code.toByte() != headers.get());
+                    val p3 = headers.position()
+                    val key: String =
+                        Charsets.UTF_8.decode(headers.position(p1).limit(p2 - 1) as ByteBuffer).toString()
+                            .trim { it <= ' ' }
+                    if (key.isNotEmpty()) {
+                        this[key] =  (p2 t2 p3)
+                    }
+                    headers.limit(l).position(p3)
                 }
-                headers.limit(l).position(p3)
             }
-            return linkedHashMap
         }
     }
 }

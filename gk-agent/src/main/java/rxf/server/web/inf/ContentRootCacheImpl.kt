@@ -10,7 +10,7 @@ import java.util.regex.Pattern
 class ContentRootCacheImpl : ContentRootImpl() {
     @Throws(Exception::class)
     override fun onWrite(key: SelectionKey) {
-        req!!.headerStrings()!![HttpHeaders.Expires.header] =
+        req!!.headerStrings!![HttpHeaders.Expires.header] =
             DateHeaderParser.RFC1123.format.format(Date(Date().time + YEAR))
         super.onWrite(key)
     }

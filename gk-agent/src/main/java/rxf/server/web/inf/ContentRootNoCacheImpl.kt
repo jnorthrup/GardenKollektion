@@ -9,7 +9,7 @@ import java.util.regex.Pattern
 class ContentRootNoCacheImpl : ContentRootImpl() {
     @Throws(Exception::class)
     override fun onWrite(key: SelectionKey) {
-        req!!.headerStrings()!![HttpHeaders.Expires.header] = DateHeaderParser.RFC1123.format.format(Date())
+        req!!.headerStrings!![HttpHeaders.Expires.header] = DateHeaderParser.RFC1123.format.format(Date())
         super.onWrite(key)
     }
 

@@ -15,7 +15,7 @@ class RelaxFactoryServerImpl : RelaxFactoryServer {
     override var port = 8080
     private var topLevel: AsioVisitor? = null
     private var hostname: InetAddress? = null
-    private var serverSocketChannel: ServerSocketChannel? = null
+    private lateinit var serverSocketChannel: ServerSocketChannel
 
     @Volatile
     override var isRunning = false
@@ -49,8 +49,8 @@ class RelaxFactoryServerImpl : RelaxFactoryServer {
 
     @Throws(IOException::class)
     override fun stop() {
-        HttpMethod.Companion.killswitch = true
-        serverSocketChannel!!.close()
+        HttpMethod.killswitch = true
+        serverSocketChannel.close()
     }
 
     companion object {
@@ -64,29 +64,12 @@ class RelaxFactoryServerImpl : RelaxFactoryServer {
          */
         @Throws(ClosedChannelException::class)
         fun enqueue(channel: SelectableChannel?, op: Int, vararg s: Any?) {
-            HttpMethod.Companion.enqueue(channel, op, *s)
-        }
-
-        fun wheresWaldo(vararg depth: Int): String {
-            val d = if (depth.size > 0) depth[0] else 2
-            val throwable = Throwable()
-            val throwable1 = throwable.fillInStackTrace()
-            val stackTrace = throwable1.stackTrace
-            var ret = ""
-            var i = 2
-            val end = StrictMath.min(stackTrace.size - 1, d)
-            while (i <= end) {
-                val stackTraceElement = stackTrace[i]
-                ret += """	at ${stackTraceElement.className}.${stackTraceElement.methodName}(${stackTraceElement.fileName}:${stackTraceElement.lineNumber})
-"""
-                i++
-            }
-            return ret
+            HttpMethod.enqueue(channel, op, *s)
         }
 
         @Throws(IOException::class)
         fun init(protocoldecoder: AsioVisitor?, vararg a: String?) {
-            HttpMethod.Companion.init(protocoldecoder, *a)
+            HttpMethod.init(protocoldecoder, *a)
         }
     }
 }

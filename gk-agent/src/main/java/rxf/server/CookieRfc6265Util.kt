@@ -1,7 +1,6 @@
 package rxf.server
 
-import one.xio.HttpMethod
-import rxf.server.CookieRfc6265Util
+import vec.macros.Pai2
 import java.io.Serializable
 import java.lang.Boolean
 import java.net.URLDecoder
@@ -15,6 +14,7 @@ import kotlin.Long
 import kotlin.NumberFormatException
 import kotlin.also
 import kotlin.code
+import kotlin.text.Charsets.UTF_8
 
 /**
  * This enum defines the HTTP Cookie and Set-Cookie header fields.
@@ -102,8 +102,8 @@ enum class CookieRfc6265Util {
                 while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
                 val begin = input.reset().position()
                 while (input.hasRemaining() && '='.code.toByte() != (input.mark() as ByteBuffer).get());
-                return ByteBuffer.allocate(
-                    (input.reset().flip().position(begin) as ByteBuffer).slice().limit()).put(input).array()
+                return ByteBuffer.allocate((input.reset().flip().position(begin) as ByteBuffer).slice().limit())
+                    .put(input).array()
             } while (input.hasRemaining())
         }
     },
@@ -120,8 +120,8 @@ enum class CookieRfc6265Util {
                 while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
                 val begin = input.reset().position()
                 while (input.hasRemaining() && ';'.code.toByte() != (input.mark() as ByteBuffer).get());
-                return ByteBuffer.allocate(
-                    (input.reset().flip().position(begin) as ByteBuffer).slice().limit()).put(input).array()
+                return ByteBuffer.allocate((input.reset().flip().position(begin) as ByteBuffer).slice().limit())
+                    .put(input).array()
             } while (input.hasRemaining())
         }
     },
@@ -161,16 +161,14 @@ enum class CookieRfc6265Util {
             input = input.slice()
             while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
             input = (input.reset() as ByteBuffer).slice()
-            var b: Byte
+            var b: Byte = 0
             while (input.hasRemaining() && !Character.isWhitespace((input.mark() as ByteBuffer).get().also { b = it }
-                    .toInt())
-                && '='.code.toByte() != b
-            );
+                    .toInt()) && '='.code != (b.toInt() and 0xff));
             val position = input.reset().position()
             val limit = token!!.limit()
             if (position == limit) {
                 while (input.hasRemaining() && '='.code.toByte() != input.get());
-                val parseme: CharBuffer = HttpMethod.Companion.UTF8.decode(input.slice())
+                val parseme: CharBuffer = UTF_8.decode(input.slice())
                 var date: Date? = null
                 try {
                     date = DateHeaderParser.Companion.parseDate(parseme.toString().trim { it <= ' ' })
@@ -215,16 +213,14 @@ enum class CookieRfc6265Util {
             input = input.slice()
             while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
             input = (input.reset() as ByteBuffer).slice()
-            var b: Byte
+            var b: Byte = 0
             while (input.hasRemaining() && !Character.isWhitespace((input.mark() as ByteBuffer).get().also { b = it }
-                    .toInt())
-                && '='.code.toByte() != b
-            );
+                    .toInt()) && '='.code.toByte() != b);
             val position = input.reset().position()
             val limit = token!!.limit()
             if (position == limit) {
                 while (input.hasRemaining() && '='.code.toByte() != input.get());
-                val parseme: CharBuffer = HttpMethod.Companion.UTF8.decode(input.slice())
+                val parseme: CharBuffer = UTF_8.decode(input.slice())
                 var l: Long? = null
                 try {
                     l = parseme.toString().trim { it <= ' ' }.toLong()
@@ -273,11 +269,9 @@ enum class CookieRfc6265Util {
             input = input.slice()
             while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
             input = (input.reset() as ByteBuffer).slice()
-            var b: Byte
+            var b: Byte = 0
             while (input.hasRemaining() && !Character.isWhitespace((input.mark() as ByteBuffer).get().also { b = it }
-                    .toInt())
-                && '='.code.toByte() != b
-            );
+                    .toInt()) && '='.code.toByte() != b);
             val position = input.reset().position()
             val limit = token!!.limit()
             if (position == limit) {
@@ -318,11 +312,9 @@ enum class CookieRfc6265Util {
             input = input.slice()
             while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
             input = (input.reset() as ByteBuffer).slice()
-            var b: Byte
+            var b: Byte = 0
             while (input.hasRemaining() && !Character.isWhitespace((input.mark() as ByteBuffer).get().also { b = it }
-                    .toInt())
-                && '='.code.toByte() != b
-            );
+                    .toInt()) && '='.code.toByte() != b);
             val position = input.reset().position()
             val limit = token!!.limit()
             if (position == limit) {
@@ -345,17 +337,18 @@ enum class CookieRfc6265Util {
         override fun value(input: ByteBuffer): Serializable? {
             input.rewind()
             val tok = token!!.duplicate()
-            var b: Byte
+            var b: Byte = 0
             do {
                 while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
                 tok.rewind()
-                while (tok.hasRemaining() && input.hasRemaining()
-                    && tok.get() == input.get().lowercaseChar()
+                while (tok.hasRemaining() && input.hasRemaining() && tok.get().toInt().toChar() == input.get().toInt()
+                        .toChar()
+                        .lowercaseChar()
                 );
                 if (!tok.hasRemaining()) {
                     var keep = false
                     while (input.hasRemaining() && ';'.code.toByte() != (input.mark() as ByteBuffer).get()
-                            .also { b = it } && Character.isWhitespace(b.toInt()).also { keep = it }
+                            .also { b = it } && Character.isWhitespace(b.toInt().toChar()).also { keep = it }
                     );
                     if (keep) return Boolean.TRUE
                 }
@@ -377,17 +370,18 @@ enum class CookieRfc6265Util {
         override fun value(input: ByteBuffer): Serializable? {
             input.rewind()
             val tok = token!!.duplicate()
-            var b: Byte
+            var b: Byte = 0
             do {
                 while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
                 tok.rewind()
-                while (tok.hasRemaining() && input.hasRemaining()
-                    && tok.get() == input.get().lowercaseChar()
+                while (tok.hasRemaining() && input.hasRemaining() && tok.get().toInt().toChar() == input.get().toInt()
+                        .toChar()
+                        .lowercaseChar()
                 );
                 if (!tok.hasRemaining()) {
                     var keep = false
                     while (input.hasRemaining() && ';'.code.toByte() != (input.mark() as ByteBuffer).get()
-                            .also { b = it } && Character.isWhitespace(b.toInt()).also { keep = it }
+                            .also { b = it } && Character.isWhitespace(b.toInt().toChar()).also { keep = it }
                     );
                     if (keep) {
                         return Boolean.TRUE
@@ -399,7 +393,7 @@ enum class CookieRfc6265Util {
     };
 
     val key = URLDecoder.decode(name.replace('$', '%')).lowercase(Locale.getDefault())
-    var token: ByteBuffer? = HttpMethod.Companion.UTF8.encode(key)
+    var token: ByteBuffer? = UTF_8.encode(key)
     abstract fun value(token: ByteBuffer): Serializable?
 
     companion object {
@@ -443,9 +437,9 @@ enum class CookieRfc6265Util {
          */
         fun parseCookie(
             input: ByteBuffer?,
-            vararg filter: ByteBuffer
-        ): Pair<Pair<ByteBuffer, ByteBuffer>, out Pair<*, *>>? {
-            var ret: Pair<*, *>? = null
+            vararg filter: ByteBuffer,
+        ): Pai2<Pai2<ByteBuffer, ByteBuffer>, out Pai2<*, *>>? {
+            var ret: Pai2<*, *>? = null
             val buf = input!!.duplicate().slice()
             while (buf.hasRemaining()) {
                 while (buf.hasRemaining() && Character.isWhitespace((buf.mark() as ByteBuffer).get().toInt()));
@@ -456,7 +450,7 @@ enum class CookieRfc6265Util {
                 val vBegin = buf.reset().position()
                 while (buf.hasRemaining()) {
                     when ((buf.mark() as ByteBuffer).get()) {
-                        ';', '\r', '\n' -> {}
+                        ';'.code.toByte(), '\r'.code.toByte(), '\n'.code.toByte() -> {}
                         else -> continue
                     }
                     break
@@ -468,16 +462,16 @@ enum class CookieRfc6265Util {
                             filt.rewind()
                             while (filt.hasRemaining() && ckey.hasRemaining() && filt.get() == ckey.get());
                             if (!filt.hasRemaining() && !ckey.hasRemaining()) {
-                                ret = Pair(Pair<Buffer, ByteBuffer>(ckey.reset(), (buf.duplicate().reset().flip()
-                                    .position(vBegin) as ByteBuffer).slice()), ret)
+                                ret = Pai2(Pai2<Buffer, ByteBuffer>(ckey.reset(),
+                                    (buf.duplicate().reset().flip().position(vBegin) as ByteBuffer).slice()), ret)
                                 break
                             }
                         }
                     }
-                } else ret = Pair(Pair(ckey, (buf.duplicate().reset().flip().position(vBegin) as ByteBuffer)
-                    .slice()), ret)
+                } else ret =
+                    Pai2(Pai2(ckey, (buf.duplicate().reset().flip().position(vBegin) as ByteBuffer).slice()), ret)
             }
-            return ret as Pair<Pair<ByteBuffer, ByteBuffer>, out Pair<*, *>>?
+            return ret as Pai2<Pai2<ByteBuffer, ByteBuffer>, out Pai2<*, *>>?
         }
     }
 }

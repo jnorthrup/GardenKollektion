@@ -1,13 +1,13 @@
 package rxf.server.daemon
 
 import one.xio.AsioVisitor
-import one.xio.HttpMethod
 import rxf.server.PreRead
 import rxf.server.driver.RxfBootstrap
 import java.nio.ByteBuffer
 import java.nio.CharBuffer
 import java.nio.channels.SelectionKey
 import java.nio.channels.SocketChannel
+import kotlin.text.Charsets.UTF_8
 
 /**
  * this visitor shovels data from the outward selector to the inward selector, and vice versa.  once the headers are
@@ -15,14 +15,9 @@ import java.nio.channels.SocketChannel
  */
 open class HttpPipeVisitor(
     protected var name: String, //  public AtomicInteger remaining;
-    var otherKey: SelectionKey, vararg b: ByteBuffer
+    var otherKey: SelectionKey, vararg val  b: ByteBuffer
 ) : AsioVisitor.Impl(), PreRead {
-    private val b: Array<ByteBuffer>
     var isLimit = false
-
-    init {
-        this.b = b
-    }
 
     @Throws(Exception::class)
     override fun onRead(key: SelectionKey) {
@@ -48,7 +43,7 @@ open class HttpPipeVisitor(
         val channel = key.channel() as SocketChannel
         val flip = outBuffer.flip() as ByteBuffer
         if (PROXY_DEBUG) {
-            val decode: CharBuffer = HttpMethod.Companion.UTF8.decode(flip.duplicate())
+            val decode: CharBuffer =  UTF_8.decode(flip.duplicate())
             System.err.println("writing to $name: $decode-")
         }
         val write = channel.write(flip)
@@ -68,9 +63,9 @@ open class HttpPipeVisitor(
         }
     }
 
-    val inBuffer: ByteBuffer
+    val inBuffer
         get() = b[0]
-    val outBuffer: ByteBuffer
+    val outBuffer
         get() = b[1]
 
     companion object {

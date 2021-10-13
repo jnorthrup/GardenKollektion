@@ -1,3 +1,5 @@
+@file:Suppress("ClassName", "EnumEntryName", "SpellCheckingInspection")
+
 package rxf.server
 
 import one.xio.AsioVisitor
@@ -11,7 +13,7 @@ import java.util.regex.Pattern
  * Date: 6/25/12
  * Time: 1:24 PM
  */
-interface CouchNamespace {
+interface UpstreamNamespace {
     val orgName: String?
     fun setOrgname(orgname: String?)
     var entityName: String?
@@ -19,17 +21,17 @@ interface CouchNamespace {
 
     enum class ns {
         orgname {
-            override fun setMe(cl: CouchNamespace, ns: String?) {
+            override fun setMe(cl: UpstreamNamespace, ns: String?) {
                 cl.setOrgname(ns)
             }
         },
         entityName {
-            override fun setMe(cl: CouchNamespace, ns: String?) {
+            override fun setMe(cl: UpstreamNamespace, ns: String?) {
                 cl.entityName = ns
             }
         };
 
-        abstract fun setMe(cl: CouchNamespace, ns: String?)
+        abstract fun setMe(cl: UpstreamNamespace, ns: String?)
     }
 
     companion object {
@@ -43,11 +45,11 @@ interface CouchNamespace {
         /**
          * defines where 1xio/rxf finds static content root.
          */
-        val COUCH_DEFAULT_FS_ROOT = RxfBootstrap.getVar("RXF_SERVER_CONTENT_ROOT", "./")
+        val UPSTREAM_DEFAULT_FS_ROOT = RxfBootstrap.getVar("RXF_SERVER_CONTENT_ROOT", "./")
 
         /**
          * creates the orgname used in factories without localized namespaces
          */
-        val COUCH_DEFAULT_ORGNAME = RxfBootstrap.getVar("RXF_ORGNAME", "rxf_")
+        val UPSTREAM_DEFAULT_ORGNAME = RxfBootstrap.getVar("RXF_ORGNAME", "rxf_")
     }
 }

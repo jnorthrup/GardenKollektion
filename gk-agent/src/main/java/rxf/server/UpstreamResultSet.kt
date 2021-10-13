@@ -5,7 +5,7 @@ package rxf.server
  * Date: 5/16/12
  * Time: 7:56 PM
  */
-class CouchResultSet<K, V> {
+class UpstreamResultSet<K, V> {
     var totalRows: Long = 0
     var offset: Long = 0
     var rows: List<tuple<K, V>>? = null

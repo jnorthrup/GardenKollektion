@@ -2,7 +2,6 @@ package one.xio
 
 import java.io.IOException
 import java.nio.channels.*
-import java.nio.charset.Charset
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -16,11 +15,10 @@ enum class HttpMethod {
     GET, POST, PUT, HEAD, DELETE, TRACE, CONNECT, OPTIONS, HELP, VERSION;
 
     companion object {
-        private val q: Queue<Array<Any?>?> = ConcurrentLinkedQueue<Any?>()
-        var UTF8 = Charset.forName("UTF8")
-        var selectorThread: Thread? = null
+        private val q = ConcurrentLinkedQueue<Array<*>>()
         var killswitch = false
-        var selector: Selector? = null
+        lateinit var selector: Selector
+        lateinit var selectorThread: Thread
 
         /**
          * handles the threadlocal ugliness if any to registering user threads into the selector/reactor pattern
@@ -40,9 +38,12 @@ enum class HttpMethod {
                 q.add(arrayOf(channel, op, s))
             }
             val selector1 = selector
-            selector1?.wakeup()
+            selector1.wakeup()
         }
 
+        /**
+         * macro for a quick stacktrace to stuff into weakHashMap elsewhere
+         */
         fun wheresWaldo(vararg depth: Int): String {
             val d = if (depth.size > 0) depth[0] else 2
             val throwable = Throwable()
@@ -53,8 +54,7 @@ enum class HttpMethod {
             val end = StrictMath.min(stackTrace.size - 1, d)
             while (i <= end) {
                 val stackTraceElement = stackTrace[i]
-                ret += """	at ${stackTraceElement.className}.${stackTraceElement.methodName}(${stackTraceElement.fileName}:${stackTraceElement.lineNumber})
-"""
+                ret += "	at ${stackTraceElement.className}.${stackTraceElement.methodName}(${stackTraceElement.fileName}:${stackTraceElement.lineNumber})\n"
                 i++
             }
             return ret
@@ -91,7 +91,7 @@ enum class HttpMethod {
 
         @Throws(IOException::class)
         private fun innerloop(protocoldecoder: AsioVisitor?) {
-            val keys = selector!!.selectedKeys()
+            val keys = selector.selectedKeys()
             val i = keys.iterator()
             while (i.hasNext()) {
                 val key = i.next()
@@ -122,15 +122,15 @@ enum class HttpMethod {
                         }
                     } catch (e: Throwable) {
                         val attachment = key.attachment()
-                        if (attachment is Array<Any>) {
+                        if (attachment is Array<*>) {
                             System.err.println("BadHandler: " + Arrays.deepToString(attachment))
                         } else System.err.println("BadHandler: $attachment")
-                        if (AsioVisitor.Companion.`$DBG`) {
+                        if (AsioVisitor.`$DBG`) {
                             val asioVisitor = inferAsioVisitor(protocoldecoder, key)
                             if (asioVisitor is AsioVisitor.Impl) {
                                 val visitor = asioVisitor
-                                if (AsioVisitor.Companion.`$origins`!!.containsKey(visitor)) {
-                                    val s: String = AsioVisitor.Companion.`$origins`!!.get(visitor)!!
+                                if (AsioVisitor.`$origins`!!.containsKey(visitor)) {
+                                    val s: String = AsioVisitor.`$origins`.get(visitor)!!
                                     System.err.println("origin$s")
                                 }
                             }
@@ -143,28 +143,10 @@ enum class HttpMethod {
             }
         }
 
-        fun inferAsioVisitor(`default$`: AsioVisitor?, key: SelectionKey): AsioVisitor? {
-            var attachment = key.attachment()
-            var m: AsioVisitor?
-            if (null == attachment) m = `default$`
-            if (attachment is Array<Any>) {
-                for (o in (attachment as Array<Any?>)) {
-                    attachment = o
-                    break
-                }
-            }
-            if (attachment is Iterable<*>) {
-                for (o in attachment) {
-                    attachment = o
-                    break
-                }
-            }
-            m = if (attachment is AsioVisitor) attachment else `default$`
-            return m
-        }
-
-        fun setKillswitch(killswitch: Boolean) {
-            Companion.killswitch = killswitch
+        fun inferAsioVisitor(defaultService: AsioVisitor?, key: SelectionKey) = key.attachment().let { attachment ->
+            (((attachment as? Array<*>)?.let(Array<*>::first))
+                ?: (attachment as? Iterable<*>)?.let(Iterable<*>::first)) as? AsioVisitor ?: defaultService
         }
     }
 }
+

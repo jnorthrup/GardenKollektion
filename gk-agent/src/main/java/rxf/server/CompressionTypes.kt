@@ -5,12 +5,14 @@ package rxf.server
  * Date: 4/30/12
  * Time: 12:18 AM
  */
-enum class CompressionTypes(vararg suffix: String) {
-    gzip("gz"), bzip2("bz2"), xz;
+enum class CompressionTypes(val _suf :String?=null) {
+    gzip("gz"),
+    bzip2("bz2"),
+    xz,
+    zstd,
+    lz4,
+    lzo,
+    `$7za`("7z");
+    val suffix get() = _suf ?: name
 
-    var suffix: String
-
-    init {
-        this.suffix = if (suffix.size == 0) name else suffix[0]
-    }
 }

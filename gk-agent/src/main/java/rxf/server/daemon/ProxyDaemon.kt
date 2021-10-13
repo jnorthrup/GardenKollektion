@@ -2,11 +2,13 @@ package rxf.server.daemon
 
 import one.xio.AsioVisitor
 import one.xio.HttpHeaders
-import one.xio.HttpMethod
 import rxf.server.BlobAntiPatternObject
+import rxf.server.RelaxFactoryServerImpl
 import rxf.server.Rfc822HeaderState
 import rxf.server.driver.RxfBootstrap
-import java.net.*
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.UnknownHostException
 import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -14,6 +16,7 @@ import java.nio.channels.SelectionKey
 import java.nio.channels.ServerSocketChannel
 import java.nio.channels.SocketChannel
 import java.util.*
+import kotlin.text.Charsets.UTF_8
 
 /**
  *
@@ -51,7 +54,7 @@ class ProxyDaemon(vararg proxyTask: ProxyTask) : AsioVisitor.Impl() {
         val c = key.channel() as ServerSocketChannel
         val accept = c.accept()
         accept.configureBlocking(false)
-        HttpMethod.Companion.enqueue(accept, SelectionKey.OP_READ, this)
+        RelaxFactoryServerImpl.enqueue(accept, SelectionKey.OP_READ, this)
     }
 
     @Throws(Exception::class)
@@ -63,14 +66,14 @@ class ProxyDaemon(vararg proxyTask: ProxyTask) : AsioVisitor.Impl() {
             val timeHeaders = RPS_SHOW && counter % 1000 == 0
             var l: Long = 0
             if (timeHeaders) l = System.nanoTime()
-            val req = Rfc822HeaderState().`$req`().headerInterest(
-                HttpHeaders.Host).apply(cursor!!.duplicate().flip() as ByteBuffer) as Rfc822HeaderState.HttpRequest
-            val headersBuf = req.headerBuf()
+            val req = Rfc822HeaderState().`$req`.headerInterest(
+                HttpHeaders.Host).invoke(cursor!!.duplicate().flip() as ByteBuffer) as Rfc822HeaderState.HttpRequest
+            val headersBuf = req.headerBuf
             if (BlobAntiPatternObject.suffixMatchChunks(TERMINATOR, headersBuf)) {
                 val climit = cursor!!.position()
                 if (PROXY_DEBUG) {
                     val decode: String =
-                        HttpMethod.Companion.UTF8.decode(headersBuf!!.duplicate().rewind() as ByteBuffer).toString()
+                        ProcessFsm.UTF8.decode(headersBuf!!.duplicate().rewind() as ByteBuffer).toString()
                     val split = decode.split("[\r\n]+").toTypedArray()
                     System.err.println(Arrays.deepToString(split))
                 }
@@ -78,23 +81,23 @@ class ProxyDaemon(vararg proxyTask: ProxyTask) : AsioVisitor.Impl() {
                 val address = outterChannel.socket().remoteSocketAddress as InetSocketAddress
 
                 //grab a frame of int offsets
-                val headers: Map<String?, IntArray?> = HttpHeaders.Companion.getHeaders(
+                val headers = HttpHeaders.Companion.getHeaders(
                     headersBuf!!.flip() as ByteBuffer)
                 val hosts = headers["Host"]
-                val slice2: ByteBuffer = HttpMethod.Companion.UTF8.encode("""
+                val slice2: ByteBuffer = UTF_8.encode("""
     Host: ${proxyTask.prefix}
     X-Origin-Host: $address
     
     """.trimIndent())
                 val position: Buffer = cursor!!.limit(climit).position(headersBuf.limit())
                 val inwardBuffer = ByteBuffer.allocateDirect(8 shl 10).put(
-                    cursor!!.clear().limit(1 + hosts!![0] - HOSTPREFIXLEN) as ByteBuffer).put(
-                    cursor!!.limit(headersBuf.limit() - 2).position(hosts[1]) as ByteBuffer).put(slice2)
+                    cursor!!.clear().limit(1 + hosts!!.first - HOSTPREFIXLEN) as ByteBuffer).put(
+                    cursor!!.limit(headersBuf.limit() - 2).position(hosts.second) as ByteBuffer).put(slice2)
                     .put(position as ByteBuffer)
                 cursor = null
                 if (PROXY_DEBUG) {
                     val flip = inwardBuffer.duplicate().flip() as ByteBuffer
-                    System.err.println(HttpMethod.Companion.UTF8.decode(flip).toString() + "-")
+                    System.err.println(UTF_8.decode(flip).toString() + "-")
                     if (timeHeaders) System.err.println("header decode (ns):" + (System.nanoTime() - l))
                 }
                 counter++
@@ -166,6 +169,7 @@ class ProxyDaemon(vararg proxyTask: ProxyTask) : AsioVisitor.Impl() {
             innerKey.interestOps(SelectionKey.OP_WRITE)
             innerKey.attach(object : HttpPipeVisitor("$s-out", outerKey, ob, b[0]!!) {
                 var fail = false
+
                 @Throws(Exception::class)
                 override fun onRead(key: SelectionKey) {
                     if (!ib.isLimit || fail) {
@@ -178,12 +182,8 @@ class ProxyDaemon(vararg proxyTask: ProxyTask) : AsioVisitor.Impl() {
                             }
                             0 -> return
                             else ->
-                                var  httpResponse
-                                : Rfc822HeaderState.HttpResponse
-                                ?
-                                = Rfc822HeaderState().headerInterest(
-                                HttpHeaders.`Content$2dLength`).apply(
-                                inBuffer.duplicate().flip() as ByteBuffer).`$res`()
+                                Rfc822HeaderState().headerInterest(HttpHeaders.`Content$2dLength`)(inBuffer.duplicate()
+                                    .flip() as ByteBuffer).`$res`
                         }
                     }
                     super.onRead(key)
