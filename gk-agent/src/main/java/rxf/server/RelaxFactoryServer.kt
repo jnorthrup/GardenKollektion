@@ -1,9 +1,8 @@
-package rxf.server;
+package rxf.server
 
-import one.xio.AsioVisitor;
-
-import java.io.IOException;
-import java.net.UnknownHostException;
+import one.xio.AsioVisitor
+import java.io.IOException
+import java.net.UnknownHostException
 
 /**
  * Created with IntelliJ IDEA.
@@ -12,35 +11,38 @@ import java.net.UnknownHostException;
  * Time: 8:12 PM
  * To change this template use File | Settings | File Templates.
  */
-public interface RelaxFactoryServer {
+interface RelaxFactoryServer {
+    @Throws(UnknownHostException::class)
+    fun init(hostname: String?, port: Int, topLevel: AsioVisitor?)
 
-    InheritableThreadLocal<RelaxFactoryServer> rxfTl = new InheritableThreadLocal();
+    @Throws(IOException::class)
+    fun start()
 
-    void init(String hostname, int port, AsioVisitor topLevel) throws UnknownHostException;
-
-    void start() throws IOException;
-
-    void stop() throws IOException;
-
-    boolean isRunning();
+    @Throws(IOException::class)
+    fun stop()
+    val isRunning: Boolean
 
     /**
      * Returns the port the server has started on. Useful in the case where
-     * {@link #init(String, int, one.xio.AsioVisitor)} was invoked with 0, {@link #start()} called,
+     * [.init] was invoked with 0, [.start] called,
      * and the server selected its own port.
      *
      * @return
      */
-    int getPort();
+    val port: Int
 
-    class App {
-        public static RelaxFactoryServer get() {
-            RelaxFactoryServer relaxFactoryServer = rxfTl.get();
+    object App {
+        fun get(): RelaxFactoryServer {
+            var relaxFactoryServer = rxfTl.get()
             if (null == relaxFactoryServer) {
-                relaxFactoryServer = new RelaxFactoryServerImpl();
-                rxfTl.set(relaxFactoryServer);
+                relaxFactoryServer = RelaxFactoryServerImpl()
+                rxfTl.set(relaxFactoryServer)
             }
-            return relaxFactoryServer;
+            return relaxFactoryServer
         }
+    }
+
+    companion object {
+        val rxfTl: InheritableThreadLocal<RelaxFactoryServer?> = InheritableThreadLocal<Any?>()
     }
 }

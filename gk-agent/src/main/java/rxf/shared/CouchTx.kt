@@ -1,102 +1,35 @@
-package rxf.shared;
+package rxf.shared
 
-public class CouchTx {
-    private Boolean ok;
-    private String id;
-    private String rev;
-    private String error;
-    private String reason;
-
-    @Override
-    public String toString() {
-        return "CouchTx{" + "ok=" + ok + ", key='" + id + '\'' + ", rev='" + rev + '\'' + ", error='"
-                + error + '\'' + ", reason='" + reason + '\'' + '}';
-    }
-
-    public Boolean ok() {
-        return null != ok && ok;
-    }
-
-    public String id() {
-        return id;
-    }
-
-    public String rev() {
-        return rev;
-    }
-
-    public String error() {
-        return error;
-    }
-
-    public String reason() {
-        return reason;
-    }
-
-    public CouchTx ok(Boolean ok) {
-        this.ok = ok;
-        return this;
-    }
-
-    public CouchTx id(String id) {
-        this.id = id;
-        return this;
-    }
-
-    public CouchTx rev(String rev) {
-        this.rev = rev;
-        return this;
-    }
-
-    public CouchTx error(String error) {
-        this.error = error;
-        return this;
-    }
-
-    public CouchTx reason(String reason) {
-        this.reason = reason;
-        return this;
-    }
-
+class CouchTx {
     ////////////////////////////// RF hideousity below
+    var ok: Boolean? = null
+    var id: String? = null
+    var rev: String? = null
+    var error: String? = null
+    var reason: String? = null
+    override fun toString(): String =
+        ("CouchTx{" + "ok=" + ok + ", key='" + id + '\'' + ", rev='" + rev + '\'' + ", error='" + error + '\'' + ", reason='" + reason + '\'' + '}')
 
-    public Boolean getOk() {
-        return ok;
+    fun ok(): Boolean = ok ?: false
+
+    fun id(): String? = id
+
+    fun rev(): String? = rev
+
+    fun error(): String? = error
+
+    fun reason(): String? = reason
+
+    fun ok(ok: Boolean?): CouchTx {
+        this.ok = ok
+        return this
     }
 
-    public void setOk(Boolean ok) {
-        this.ok = ok;
-    }
+    fun id(id: String?)= apply{ this.id = id }
 
-    public String getId() {
-        return id;
-    }
+    fun rev(rev: String?) = apply { this.rev = rev }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    fun error(error: String?)=apply{ this.error = error }
 
-    public String getRev() {
-        return rev;
-    }
-
-    public void setRev(String rev) {
-        this.rev = rev;
-    }
-
-    public String getError() {
-        return error;
-    }
-
-    public void setError(String error) {
-        this.error = error;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
+    fun reason(reason: String?)= apply{ this.reason = reason }
 }

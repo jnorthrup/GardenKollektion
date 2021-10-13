@@ -1,22 +1,10 @@
-package rxf.server;
+package rxf.server
 
 //import com.google.gson.annotations.SerializedName;
-
-public class Attachment {
-
-    private long length;
+class Attachment {
+    val length: Long = 0
 
     //  @SerializedName("content_type")
-    private String contentType;
-
-    private boolean stub = true;
-
-    public long getLength() {
-        return length;
-    }
-
-    public String getContentType() {
-        return contentType;
-    }
-
+    val contentType: String? = null
+    private val stub = true
 }

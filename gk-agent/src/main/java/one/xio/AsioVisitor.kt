@@ -1,55 +1,49 @@
-package one.xio;
+package one.xio
 
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.util.WeakHashMap;
-
-import static java.nio.channels.SelectionKey.OP_READ;
-import static java.nio.channels.SelectionKey.OP_WRITE;
+import java.nio.ByteBuffer
+import java.nio.channels.SelectionKey
+import java.nio.channels.ServerSocketChannel
+import java.nio.channels.SocketChannel
+import java.util.*
 
 /**
  * User: jim
  * Date: 4/15/12
  * Time: 11:50 PM
  */
-public interface AsioVisitor {
+interface AsioVisitor {
+    @Throws(Exception::class)
+    fun onRead(key: SelectionKey)
 
-    final boolean $DBG = null != System.getenv("DEBUG_VISITOR_ORIGINS");
-    WeakHashMap<Impl, String> $origins = $DBG ? new WeakHashMap<Impl, String>() : null;
+    @Throws(Exception::class)
+    fun onConnect(key: SelectionKey)
 
-    void onRead(SelectionKey key) throws Exception;
+    @Throws(Exception::class)
+    fun onWrite(key: SelectionKey)
 
-    void onConnect(SelectionKey key) throws Exception;
-
-    void onWrite(SelectionKey key) throws Exception;
-
-    void onAccept(SelectionKey key) throws Exception;
-
-    class Impl implements AsioVisitor {
-        {
-            if ($DBG)
-                $origins.put(this, HttpMethod.wheresWaldo(4));
+    @Throws(Exception::class)
+    fun onAccept(key: SelectionKey)
+    open class Impl : AsioVisitor {
+        init {
+            if (`$DBG`) `$origins`!![this] = HttpMethod.Companion.wheresWaldo(4)
         }
 
-        public Impl preRead(Object... env) {
-            return this;
+        fun preRead(vararg env: Any?): Impl {
+            return this
         }
 
-        public Impl preWrite(Object... env) {
-            return this;
+        fun preWrite(vararg env: Any?): Impl {
+            return this
         }
 
-        @Override
-        public void onRead(SelectionKey key) throws Exception {
-            System.err.println("fail: " + key.toString());
-            final SocketChannel channel = (SocketChannel) key.channel();
-            final int receiveBufferSize = channel.socket().getReceiveBufferSize();
-            final String trim =
-                    HttpMethod.UTF8.decode(ByteBuffer.allocateDirect(receiveBufferSize)).toString().trim();
-
-            throw new UnsupportedOperationException("found " + trim + " in " + getClass().getName());
+        @Throws(Exception::class)
+        override fun onRead(key: SelectionKey) {
+            System.err.println("fail: $key")
+            val channel = key.channel() as SocketChannel
+            val receiveBufferSize = channel.socket().receiveBufferSize
+            val trim: String = HttpMethod.Companion.UTF8.decode(ByteBuffer.allocateDirect(receiveBufferSize)).toString()
+                .trim { it <= ' ' }
+            throw UnsupportedOperationException("found " + trim + " in " + javaClass.name)
         }
 
         /**
@@ -58,27 +52,29 @@ public interface AsioVisitor {
          * @param key
          * @throws Exception
          */
-        @Override
-        public void onConnect(SelectionKey key) throws Exception {
-            if (((SocketChannel) key.channel()).finishConnect())
-                key.interestOps(OP_WRITE);
+        @Throws(Exception::class)
+        override fun onConnect(key: SelectionKey) {
+            if ((key.channel() as SocketChannel).finishConnect()) key.interestOps(SelectionKey.OP_WRITE)
         }
 
-        @Override
-        public void onWrite(SelectionKey key) throws Exception {
-            final SocketChannel channel = (SocketChannel) key.channel();
-            System.err.println("buffer underrun?: " + channel.socket().getRemoteSocketAddress());
-            throw new UnsupportedOperationException("found in " + getClass().getName());
+        @Throws(Exception::class)
+        override fun onWrite(key: SelectionKey) {
+            val channel = key.channel() as SocketChannel
+            System.err.println("buffer underrun?: " + channel.socket().remoteSocketAddress)
+            throw UnsupportedOperationException("found in " + javaClass.name)
         }
 
-        @Override
-        public void onAccept(SelectionKey key) throws Exception {
-
-            ServerSocketChannel c = (ServerSocketChannel) key.channel();
-            final SocketChannel accept = c.accept();
-            accept.configureBlocking(false);
-            HttpMethod.enqueue(accept, OP_READ | OP_WRITE, key.attachment());
-
+        @Throws(Exception::class)
+        override fun onAccept(key: SelectionKey) {
+            val c = key.channel() as ServerSocketChannel
+            val accept = c.accept()
+            accept.configureBlocking(false)
+            HttpMethod.Companion.enqueue(accept, SelectionKey.OP_READ or SelectionKey.OP_WRITE, key.attachment())
         }
+    }
+
+    companion object {
+        val `$DBG` = null != System.getenv("DEBUG_VISITOR_ORIGINS")
+        val `$origins` = if (`$DBG`) WeakHashMap<Impl, String>() else null
     }
 }

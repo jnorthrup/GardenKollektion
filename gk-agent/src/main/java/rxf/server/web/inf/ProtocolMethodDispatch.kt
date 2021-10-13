@@ -1,148 +1,130 @@
-package rxf.server.web.inf;
+package rxf.server.web.inf
 
-import one.xio.AsioVisitor.Impl;
-import one.xio.HttpMethod;
-import rxf.server.BlobAntiPatternObject;
-import rxf.server.HttpProxyImpl;
-import rxf.server.PreRead;
-import rxf.server.Rfc822HeaderState;
-import rxf.server.Rfc822HeaderState.HttpRequest;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static java.nio.channels.SelectionKey.OP_READ;
-import static one.xio.HttpMethod.*;
-import static rxf.server.CouchNamespace.NAMESPACE;
+import one.xio.AsioVisitor
+import one.xio.HttpMethod
+import rxf.server.*
+import rxf.server.web.inf.ContentRootCacheImpl
+import rxf.server.web.inf.ContentRootImpl
+import rxf.server.web.inf.ContentRootNoCacheImpl
+import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.CharBuffer
+import java.nio.channels.SelectionKey
+import java.nio.channels.ServerSocketChannel
+import java.nio.channels.SocketChannel
+import java.util.regex.Pattern
 
 /**
  * this class holds a protocol namespace to dispatch requests
- * <p/>
- * {@link  rxf.server.CouchNamespace#NAMESPACE } is a  map of http methods each containing an ordered map of regexes tested in order of
+ *
+ *
+ * [rxf.server.CouchNamespace.NAMESPACE] is a  map of http methods each containing an ordered map of regexes tested in order of
  * map insertion.
- * <p/>
+ *
+ *
  * User: jim
  * Date: 4/18/12
  * Time: 12:37 PM
  */
-public class ProtocolMethodDispatch extends Impl {
-
-    public static final ByteBuffer NONCE = ByteBuffer.allocateDirect(0);
-
-    /**
-     * the PUT protocol handlers, only static for the sake of javadocs
-     */
-    public static Map<Pattern, Class<? extends Impl>> POSTmap =
-            new LinkedHashMap<>();
-
-    /**
-     * the GET protocol handlers, only static for the sake of javadocs
-     */
-    public static Map<Pattern, Class<? extends Impl>> GETmap =
-            new LinkedHashMap<>();
-
-    static {
-        NAMESPACE.put(POST, POSTmap);
-        NAMESPACE.put(GET, GETmap);
-
-        /**
-         * for gwt requestfactory done via POST.
-         *
-         * TODO: rf GET from query parameters
-         */
-//    POSTmap.put(Pattern.compile("^/gwtRequest"), GwtRequestFactoryVisitor.class);
-
-        /**
-         * any url begining with /i is a proxied $req to couchdb but only permits image/* and text/*
-         */
-
-        Pattern passthroughExpr = Pattern.compile("^/i(/.*)$");
-        GETmap.put(passthroughExpr, HttpProxyImpl.class/*(passthroughExpr)*/);
-
-        /**
-         * general purpose httpd static content server that recognizes .gz and other compression suffixes when convenient
-         *
-         * any random config mechanism with a default will suffice here to define the content root.
-         *
-         * widest regex last intentionally
-         * system proprty: {value #RXF_SERVER_CONTENT_ROOT}
-         */
-        GETmap.put(ContentRootCacheImpl.CACHE_PATTERN, ContentRootCacheImpl.class);
-        GETmap.put(ContentRootNoCacheImpl.NOCACHE_PATTERN, ContentRootNoCacheImpl.class);
-        GETmap.put(Pattern.compile(".*"), ContentRootImpl.class);
+class ProtocolMethodDispatch : AsioVisitor.Impl() {
+    @Throws(IOException::class)
+    override fun onAccept(key: SelectionKey) {
+        val channel = key.channel() as ServerSocketChannel
+        val accept = channel.accept()
+        accept.configureBlocking(false)
+        HttpMethod.Companion.enqueue(accept, SelectionKey.OP_READ, this)
     }
 
-    public void onAccept(SelectionKey key) throws IOException {
-        ServerSocketChannel channel = (ServerSocketChannel) key.channel();
-        SocketChannel accept = channel.accept();
-        accept.configureBlocking(false);
-        HttpMethod.enqueue(accept, OP_READ, this);
-
-    }
-
-    public void onRead(SelectionKey key) throws Exception {
-        SocketChannel channel = (SocketChannel) key.channel();
-
-        ByteBuffer cursor = ByteBuffer.allocateDirect(BlobAntiPatternObject.getReceiveBufferSize());
-        int read = channel.read(cursor);
+    @Throws(Exception::class)
+    override fun onRead(key: SelectionKey) {
+        val channel = key.channel() as SocketChannel
+        val cursor = ByteBuffer.allocateDirect(BlobAntiPatternObject.getReceiveBufferSize())
+        val read = channel.read(cursor)
         if (-1 == read) {
-            ((SocketChannel) key.channel()).socket().close();//cancel();
-            return;
+            (key.channel() as SocketChannel).socket().close() //cancel();
+            return
         }
-
-        HttpMethod method = null;
-        HttpRequest httpRequest = null;
+        var method: HttpMethod? = null
+        var httpRequest: Rfc822HeaderState.HttpRequest? = null
         try {
             //find the method to dispatch
-            Rfc822HeaderState state = new Rfc822HeaderState().apply((ByteBuffer) cursor.flip());
-            httpRequest = state.$req();
+            val state = Rfc822HeaderState().apply(cursor.flip() as ByteBuffer)
+            httpRequest = state!!.`$req`()
             if (BlobAntiPatternObject.DEBUG_SENDJSON) {
-                System.err.println(BlobAntiPatternObject.deepToString(UTF8.decode((ByteBuffer) httpRequest
-                        .headerBuf().duplicate().rewind())));
+                System.err.println(BlobAntiPatternObject.deepToString<CharBuffer>(HttpMethod.Companion.UTF8.decode(
+                    httpRequest
+                        .headerBuf()!!.duplicate().rewind() as ByteBuffer)))
             }
-            String method1 = httpRequest.method();
-            method = HttpMethod.valueOf(method1);
-
-        } catch (Exception e) {
+            val method1 = httpRequest.method()
+            method = HttpMethod.valueOf(method1!!)
+        } catch (e: Exception) {
         }
-
         if (null == method) {
-            ((SocketChannel) key.channel()).socket().close();//cancel();
-
-            return;
+            (key.channel() as SocketChannel).socket().close() //cancel();
+            return
         }
-
-        Set<Entry<Pattern, Class<? extends Impl>>> entries = NAMESPACE.get(method).entrySet();
-        String path = httpRequest.path();
-        for (Entry<Pattern, Class<? extends Impl>> visitorEntry : entries) {
-            Matcher matcher = visitorEntry.getKey().matcher(path);
+        val entries: Set<Map.Entry<Pattern, Class<out AsioVisitor.Impl>>> =
+            CouchNamespace.Companion.NAMESPACE.get(method)!!.entries
+        val path = httpRequest!!.path()
+        for ((key1, value) in entries) {
+            val matcher = key1.matcher(path)
             if (matcher.find()) {
                 if (BlobAntiPatternObject.DEBUG_SENDJSON) {
-                    System.err.println("+?+?+? using " + matcher.toString());
+                    System.err.println("+?+?+? using $matcher")
                 }
-                Class<? extends Impl> value = visitorEntry.getValue();
-                Impl impl;
-
-                impl = value.newInstance();
-                Object a[] = {impl, httpRequest, cursor};
-                key.attach(a);
-                if (PreRead.class.isAssignableFrom(value)) impl.onRead(key);
-                key.selector().wakeup();
-                return;
+                val impl: AsioVisitor.Impl
+                impl = value.newInstance()
+                val a = arrayOf(impl, httpRequest, cursor)
+                key.attach(a)
+                if (PreRead::class.java.isAssignableFrom(value)) impl.onRead(key)
+                key.selector().wakeup()
+                return
             }
-
         }
-        System.err.println(BlobAntiPatternObject.deepToString("!!!1!1!!", "404", path, "using",
-                NAMESPACE));
+        System.err.println(BlobAntiPatternObject.deepToString<Any>("!!!1!1!!", "404", path, "using",
+            CouchNamespace.Companion.NAMESPACE))
     }
 
+    companion object {
+        val NONCE = ByteBuffer.allocateDirect(0)
+
+        /**
+         * the PUT protocol handlers, only static for the sake of javadocs
+         */
+        var POSTmap: Map<Pattern, Class<out AsioVisitor.Impl>> = LinkedHashMap()
+
+        /**
+         * the GET protocol handlers, only static for the sake of javadocs
+         */
+        var GETmap: MutableMap<Pattern, Class<out AsioVisitor.Impl>> = LinkedHashMap()
+
+        init {
+            CouchNamespace.Companion.NAMESPACE.put(HttpMethod.POST, POSTmap)
+            CouchNamespace.Companion.NAMESPACE.put(HttpMethod.GET, GETmap)
+            /**
+             * for gwt requestfactory done via POST.
+             *
+             * TODO: rf GET from query parameters
+             */
+//    POSTmap.put(Pattern.compile("^/gwtRequest"), GwtRequestFactoryVisitor.class);
+            /**
+             * any url begining with /i is a proxied $req to couchdb but only permits image/ * and text/ *
+             */
+            val passthroughExpr = Pattern.compile("^/i(/.*)$")
+            GETmap[rxf.server.web.inf.passthroughExpr] = HttpProxyImpl::class.java
+            /**
+             * general purpose httpd static content server that recognizes .gz and other compression suffixes when convenient
+             *
+             * any random config mechanism with a default will suffice here to define the content root.
+             *
+             * widest regex last intentionally
+             * system proprty: {value #RXF_SERVER_CONTENT_ROOT}
+             */
+            GETmap[ContentRootCacheImpl.Companion.CACHE_PATTERN] =
+                ContentRootCacheImpl::class.java
+            GETmap[ContentRootNoCacheImpl.Companion.NOCACHE_PATTERN] =
+                ContentRootNoCacheImpl::class.java
+            GETmap[Pattern.compile(".*")] = ContentRootImpl::class.java
+        }
+    }
 }

@@ -1,68 +1,59 @@
-package rxf.server.daemon;
+package rxf.server.daemon
 
-import one.xio.AsioVisitor;
-import rxf.server.PreRead;
-import rxf.server.driver.RxfBootstrap;
-
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
-
-import static java.nio.channels.SelectionKey.OP_READ;
-import static java.nio.channels.SelectionKey.OP_WRITE;
-import static one.xio.HttpMethod.UTF8;
+import one.xio.AsioVisitor
+import one.xio.HttpMethod
+import rxf.server.PreRead
+import rxf.server.driver.RxfBootstrap
+import java.nio.ByteBuffer
+import java.nio.CharBuffer
+import java.nio.channels.SelectionKey
+import java.nio.channels.SocketChannel
 
 /**
  * this visitor shovels data from the outward selector to the inward selector, and vice versa.  once the headers are
  * sent inward the only state monitored is when one side of the connections close.
  */
-public class HttpPipeVisitor extends AsioVisitor.Impl implements PreRead {
-    public static final boolean PROXY_DEBUG =
-            "true".equals(RxfBootstrap.getVar("PROXY_DEBUG", String.valueOf(false)));
-    final private ByteBuffer[] b;
-    protected String name;
-    //  public AtomicInteger remaining;
-    SelectionKey otherKey;
-    private boolean limit;
+open class HttpPipeVisitor(
+    protected var name: String, //  public AtomicInteger remaining;
+    var otherKey: SelectionKey, vararg b: ByteBuffer
+) : AsioVisitor.Impl(), PreRead {
+    private val b: Array<ByteBuffer>
+    var isLimit = false
 
-    public HttpPipeVisitor(String name, SelectionKey otherKey, ByteBuffer... b) {
-        this.name = name;
-        this.otherKey = otherKey;
-        this.b = b;
+    init {
+        this.b = b
     }
 
-    @Override
-    public void onRead(SelectionKey key) throws Exception {
-        SocketChannel channel = (SocketChannel) key.channel();
-        if (otherKey.isValid()) {
-            int read = channel.read(getInBuffer());
+    @Throws(Exception::class)
+    override fun onRead(key: SelectionKey) {
+        val channel = key.channel() as SocketChannel
+        if (otherKey.isValid) {
+            val read = channel.read(inBuffer)
             if (read == -1) /*key.cancel();*/ {
-                channel.shutdownInput();
-                key.interestOps(OP_WRITE);
-                channel.write(ByteBuffer.allocate(0));
+                channel.shutdownInput()
+                key.interestOps(SelectionKey.OP_WRITE)
+                channel.write(ByteBuffer.allocate(0))
             } else {
                 //if buffer fills up, stop the read option for a bit
-                otherKey.interestOps(OP_READ | OP_WRITE);
-                channel.write(ByteBuffer.allocate(0));
+                otherKey.interestOps(SelectionKey.OP_READ or SelectionKey.OP_WRITE)
+                channel.write(ByteBuffer.allocate(0))
             }
         } else {
-            key.cancel();
+            key.cancel()
         }
     }
 
-    @Override
-    public void onWrite(SelectionKey key) throws Exception {
-        SocketChannel channel = (SocketChannel) key.channel();
-        ByteBuffer flip = (ByteBuffer) getOutBuffer().flip();
+    @Throws(Exception::class)
+    override fun onWrite(key: SelectionKey) {
+        val channel = key.channel() as SocketChannel
+        val flip = outBuffer.flip() as ByteBuffer
         if (PROXY_DEBUG) {
-            CharBuffer decode = UTF8.decode(flip.duplicate());
-            System.err.println("writing to " + name + ": " + decode + "-");
+            val decode: CharBuffer = HttpMethod.Companion.UTF8.decode(flip.duplicate())
+            System.err.println("writing to $name: $decode-")
         }
-        int write = channel.write(flip);
-
-        if (-1 == write || isLimit() /*&& null != remaining && 0 == remaining.get()*/) {
-            key.cancel();
+        val write = channel.write(flip)
+        if (-1 == write || isLimit /*&& null != remaining && 0 == remaining.get()*/) {
+            key.cancel()
         } else {
             //      if (isLimit() /*&& null != remaining*/) {
             //        /*this.remaining.getAndAdd(-write);*//*
@@ -72,24 +63,17 @@ public class HttpPipeVisitor extends AsioVisitor.Impl implements PreRead {
             //          return;
             //        }
             //      }
-            key.interestOps(OP_READ | OP_WRITE);// (getOutBuffer().hasRemaining() ? OP_WRITE : 0));
-            getOutBuffer().compact();
+            key.interestOps(SelectionKey.OP_READ or SelectionKey.OP_WRITE) // (getOutBuffer().hasRemaining() ? OP_WRITE : 0));
+            outBuffer.compact()
         }
     }
 
-    public ByteBuffer getInBuffer() {
-        return b[0];
-    }
+    val inBuffer: ByteBuffer
+        get() = b[0]
+    val outBuffer: ByteBuffer
+        get() = b[1]
 
-    public ByteBuffer getOutBuffer() {
-        return b[1];
-    }
-
-    public boolean isLimit() {
-        return limit;
-    }
-
-    public void setLimit(boolean limit) {
-        this.limit = limit;
+    companion object {
+        val PROXY_DEBUG = "true" == RxfBootstrap.getVar("PROXY_DEBUG", false.toString())
     }
 }

@@ -1,12 +1,15 @@
-package rxf.server.daemon;
+package rxf.server.daemon
 
-import one.xio.HttpMethod;
-import rxf.server.BlobAntiPatternObject;
-
-import java.net.InetSocketAddress;
-import java.net.StandardSocketOptions;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.ServerSocketChannel;
+import one.xio.HttpMethod
+import rxf.server.BlobAntiPatternObject
+import java.lang.Boolean
+import java.net.InetSocketAddress
+import java.net.StandardSocketOptions
+import java.nio.channels.SelectionKey
+import java.nio.channels.ServerSocketChannel
+import kotlin.Array
+import kotlin.String
+import kotlin.Throwable
 
 /**
  * this launches the main service thread and assigns the proxy port to socketservers.
@@ -14,32 +17,31 @@ import java.nio.channels.ServerSocketChannel;
  * Date: 10/1/13
  * Time: 7:27 PM
  */
-public class ProxyTask implements Runnable {
-    public String prefix;
-    public String[] proxyPorts;
-
-    public static void main(final String[] args) {
-        //boilerplate HttpMethod.init() here
-        BlobAntiPatternObject.getEXECUTOR_SERVICE().submit(new ProxyTask() {
-            {
-                proxyPorts = args;
-            }
-        });
-    }
-
-    @Override
-    public void run() {
+open class ProxyTask : Runnable {
+    var prefix: String? = null
+    var proxyPorts: Array<String>
+    override fun run() {
         try {
-            for (String proxyPort : proxyPorts) {
-                HttpMethod.enqueue(ServerSocketChannel.open().bind(
-                                new InetSocketAddress(Integer.parseInt(proxyPort)), 4096).setOption(
-                                StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE).configureBlocking(false),
-                        SelectionKey.OP_ACCEPT, new ProxyDaemon(this));
+            for (proxyPort in proxyPorts) {
+                HttpMethod.Companion.enqueue(ServerSocketChannel.open().bind(
+                    InetSocketAddress(proxyPort.toInt()), 4096).setOption(
+                    StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE).configureBlocking(false),
+                    SelectionKey.OP_ACCEPT, ProxyDaemon(this))
             }
-
-        } catch (Throwable e) {
-            e.printStackTrace();
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
     }
 
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) {
+            //boilerplate HttpMethod.init() here
+            BlobAntiPatternObject.getEXECUTOR_SERVICE().submit(object : ProxyTask() {
+                init {
+                    proxyPorts = args
+                }
+            })
+        }
+    }
 }

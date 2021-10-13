@@ -1,17 +1,19 @@
-package rxf.server.driver;
+package rxf.server.driver
 
-public class RxfBootstrap {
+import java.util.*
 
-    public static String getVar(String rxf_var, String... defaultVal) {
-        String javapropname =
-                "rxf.server." + rxf_var.toLowerCase().replaceAll("^rxf_(server_)?", "").replace('_', '.');
-        String rxfenv = System.getenv(rxf_var);
-        String var = null == rxfenv ? System.getProperty(javapropname) : rxfenv;
-        var = null == var && defaultVal.length > 0 ? defaultVal[0] : var;
-        if (null != var) {
-            System.setProperty(javapropname, var);
-            System.err.println("// -D" + javapropname + "=" + "\"" + var + "\"");
+object RxfBootstrap {
+    fun getVar(rxf_var: String, vararg defaultVal: String?): String? {
+        val javapropname =
+            "rxf.server." + rxf_var.lowercase(Locale.getDefault()).replace("^rxf_(server_)?".toRegex(), "")
+                .replace('_', '.')
+        val rxfenv = System.getenv(rxf_var)
+        var `var` = rxfenv ?: System.getProperty(javapropname)
+        `var` = if (null == `var` && defaultVal.size > 0) defaultVal[0] else `var`
+        if (null != `var`) {
+            System.setProperty(javapropname, `var`)
+            System.err.println("// -D$javapropname=\"$`var`\"")
         }
-        return var;
+        return `var`
     }
 }

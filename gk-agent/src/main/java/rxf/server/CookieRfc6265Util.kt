@@ -1,16 +1,20 @@
-package rxf.server;
+package rxf.server
 
-import java.io.Serializable;
-import java.net.URLDecoder;
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.EnumMap;
-import java.util.Iterator;
-
-import static one.xio.HttpMethod.UTF8;
+import one.xio.HttpMethod
+import rxf.server.CookieRfc6265Util
+import java.io.Serializable
+import java.lang.Boolean
+import java.net.URLDecoder
+import java.nio.Buffer
+import java.nio.ByteBuffer
+import java.nio.CharBuffer
+import java.util.*
+import kotlin.Byte
+import kotlin.Exception
+import kotlin.Long
+import kotlin.NumberFormatException
+import kotlin.also
+import kotlin.code
 
 /**
  * This enum defines the HTTP Cookie and Set-Cookie header fields.
@@ -19,14 +23,16 @@ import static one.xio.HttpMethod.UTF8;
  * the user agent makes subsequent requests to the server, the user
  * agent uses the metadata and other information to determine whether to
  * return the name/value pairs in the Cookie header.
- * <p/>
+ *
+ *
  * Although simple on their surface, cookies have a number of
  * complexities.  For example, the server indicates a scope for each
  * cookie when sending it to the user agent.  The scope indicates the
  * maximum amount of time in which the user agent should return the
  * cookie, the servers to which the user agent should return the cookie,
  * and the URI schemes for which the cookie is applicable.
- * <p/>
+ *
+ *
  * For historical reasons, cookies contain a number of security and
  * privacy infelicities.  For example, a server can indicate that a
  * given cookie is intended for "secure" connections, but the Secure
@@ -35,19 +41,23 @@ import static one.xio.HttpMethod.UTF8;
  * across all the ports on that host, even though the usual "same-origin
  * policy" used by web browsers isolates content retrieved via different
  * ports.
- * <p/>
+ *
+ *
  * There are two audiences for this specification: developers of cookie-
  * generating servers and developers of cookie-consuming user agents.
- * <p/>
+ *
+ *
  * To maximize interoperability with user agents, servers SHOULD limit
  * themselves to the well-behaved profile defined in Section 4 when
  * generating cookies.
- * <p/>
+ *
+ *
  * User agents MUST implement the more liberal processing rules defined
  * in Section 5, in order to maximize interoperability with existing
  * servers that do not conform to the well-behaved profile defined in
  * Section 4.
- * <p/>
+ *
+ *
  * This document specifies the syntax and semantics of these headers as
  * they are actually used on the Internet.  In particular, this document
  * does not create new syntax or semantics beyond those in use today.
@@ -58,7 +68,8 @@ import static one.xio.HttpMethod.UTF8;
  * today.  Where some existing software differs from the recommended
  * protocol in significant ways, the document contains a note explaining
  * the difference.
- * <p/>
+ *
+ *
  * Prior to this document, there were at least three descriptions of
  * cookies: the so-called "Netscape cookie specification" [Netscape],
  * RFC 2109 [RFC2109], and RFC 2965 [RFC2965].  However, none of these
@@ -66,402 +77,407 @@ import static one.xio.HttpMethod.UTF8;
  * used on the Internet (see [Kri2001] for historical context).  In
  * relation to previous IETF specifications of HTTP state management
  * mechanisms, this document requests the following actions:
- * <ol> <li> Change the status of [RFC2109] to Historic (it has already been obsoleted by [RFC2965]). </li>
- * <li> Change the status of [RFC2965] to Historic. </li>
- * <li> Indicate that [RFC2965] has been obsoleted by this document. </li>      </ol>
- * <p/>
+ *   1.  Change the status of [RFC2109] to Historic (it has already been obsoleted by [RFC2965]).
+ *  1.  Change the status of [RFC2965] to Historic.
+ *  1.  Indicate that [RFC2965] has been obsoleted by this document.
+ *
+ *
  * In particular, in moving RFC 2965 to Historic and obsoleting it, this
  * document deprecates the use of the Cookie2 and Set-Cookie2 header
  * fields.
  */
-public enum CookieRfc6265Util {
+enum class CookieRfc6265Util {
     /**
      * returns an array of bytes
      */
     Name {
-        {
-            token = null;
+        init {
+            token = null
         }
 
-        @Override
-        public Serializable value(ByteBuffer input) {
-            input = (ByteBuffer) input.duplicate().rewind();
+        override fun value(input: ByteBuffer): Serializable? {
+            var input = input
+            input = input.duplicate().rewind() as ByteBuffer
             do {
-                while (input.hasRemaining() && Character.isWhitespace(((ByteBuffer) input.mark()).get())) ;
-                int begin = input.reset().position();
-                while (input.hasRemaining() && '=' != ((ByteBuffer) input.mark()).get()) ;
-
+                while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
+                val begin = input.reset().position()
+                while (input.hasRemaining() && '='.code.toByte() != (input.mark() as ByteBuffer).get());
                 return ByteBuffer.allocate(
-                        ((ByteBuffer) input.reset().flip().position(begin)).slice().limit()).put(input).array();
-            } while (input.hasRemaining());
-
+                    (input.reset().flip().position(begin) as ByteBuffer).slice().limit()).put(input).array()
+            } while (input.hasRemaining())
         }
-
     },
     Value {
-        {
-            token = null;
+        init {
+            token = null
         }
 
-        @Override
-        public Serializable value(ByteBuffer input) {
-            input = (ByteBuffer) input.duplicate().rewind();
+        override fun value(input: ByteBuffer): Serializable? {
+            var input = input
+            input = input.duplicate().rewind() as ByteBuffer
             do {
-                while (input.hasRemaining() && '=' != input.get()) ;
-                while (input.hasRemaining() && Character.isWhitespace(((ByteBuffer) input.mark()).get())) ;
-                int begin = input.reset().position();
-                while (input.hasRemaining() && ';' != ((ByteBuffer) input.mark()).get()) ;
-
+                while (input.hasRemaining() && '='.code.toByte() != input.get());
+                while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
+                val begin = input.reset().position()
+                while (input.hasRemaining() && ';'.code.toByte() != (input.mark() as ByteBuffer).get());
                 return ByteBuffer.allocate(
-                        ((ByteBuffer) input.reset().flip().position(begin)).slice().limit()).put(input).array();
-            } while (input.hasRemaining());
+                    (input.reset().flip().position(begin) as ByteBuffer).slice().limit()).put(input).array()
+            } while (input.hasRemaining())
         }
     },
+
     /**
      * 5.2.1.  The Expires Attribute
-     * <p/>
+     *
+     *
      * If the attribute-name case-insensitively matches the string
      * "Expires", the user agent MUST process the cookie-av as follows.
-     * <p/>
+     *
+     *
      * Let the expiry-time be the result of parsing the attribute-value as
      * cookie-date (see Section 5.1.1).
-     * <p/>
+     *
+     *
      * If the attribute-value failed to parse as a cookie date, ignore the
      * cookie-av.
-     * <p/>
+     *
+     *
      * If the expiry-time is later than the last date the user agent can
      * represent, the user agent MAY replace the expiry-time with the last
      * representable date.
-     * <p/>
+     *
+     *
      * If the expiry-time is earlier than the earliest date the user agent
      * can represent, the user agent MAY replace the expiry-time with the
      * earliest representable date.
-     * <p/>
+     *
+     *
      * Append an attribute to the cookie-attribute-list with an attribute-
      * name of Expires and an attribute-value of expiry-time.
      */
     Expires {
-        @Override
-        public Serializable value(ByteBuffer input) {
-            input = input.slice();
-            while (input.hasRemaining() && Character.isWhitespace(((ByteBuffer) input.mark()).get())) ;
-            input = ((ByteBuffer) input.reset()).slice();
-            byte b;
-            while (input.hasRemaining() && !Character.isWhitespace(b = ((ByteBuffer) input.mark()).get())
-                    && '=' != b) ;
-
-            int position = input.reset().position();
-            int limit = token.limit();
-
+        override fun value(input: ByteBuffer): Serializable? {
+            var input = input
+            input = input.slice()
+            while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
+            input = (input.reset() as ByteBuffer).slice()
+            var b: Byte
+            while (input.hasRemaining() && !Character.isWhitespace((input.mark() as ByteBuffer).get().also { b = it }
+                    .toInt())
+                && '='.code.toByte() != b
+            );
+            val position = input.reset().position()
+            val limit = token!!.limit()
             if (position == limit) {
-
-                while (input.hasRemaining() && '=' != input.get()) ;
-
-                CharBuffer parseme = UTF8.decode(input.slice());
-                Date date = null;
+                while (input.hasRemaining() && '='.code.toByte() != input.get());
+                val parseme: CharBuffer = HttpMethod.Companion.UTF8.decode(input.slice())
+                var date: Date? = null
                 try {
-                    date = DateHeaderParser.parseDate(parseme.toString().trim());
-                } catch (Exception e) {
-
+                    date = DateHeaderParser.Companion.parseDate(parseme.toString().trim { it <= ' ' })
+                } catch (e: Exception) {
                 }
-                return date;
+                return date
             }
-
-            return null;
+            return null
         }
     },
+
     /**
      * 5.2.2.  The Max-Age Attribute
-     * <p/>
+     *
+     *
      * If the attribute-name case-insensitively matches the string "Max-
      * Age", the user agent MUST process the cookie-av as follows.
-     * <p/>
+     *
+     *
      * If the first character of the attribute-value is not a DIGIT or a "-"
      * character, ignore the cookie-av.
-     * <p/>
+     *
+     *
      * If the remainder of attribute-value contains a non-DIGIT character,
      * ignore the cookie-av.
-     * <p/>
+     *
+     *
      * Let delta-seconds be the attribute-value converted to an integer.
-     * <p/>
+     *
+     *
      * If delta-seconds is less than or equal to zero (0), let expiry-time
      * be the earliest representable date and time.  Otherwise, let the
      * expiry-time be the current date and time plus delta-seconds seconds.
-     * <p/>
+     *
+     *
      * Append an attribute to the cookie-attribute-list with an attribute-
      * name of Max-Age and an attribute-value of expiry-time.
      */
-    Max$2dAge {
-        @Override
-        public Serializable value(ByteBuffer input) {
-            input = input.slice();
-            while (input.hasRemaining() && Character.isWhitespace(((ByteBuffer) input.mark()).get())) ;
-            input = ((ByteBuffer) input.reset()).slice();
-            byte b;
-            while (input.hasRemaining() && !Character.isWhitespace(b = ((ByteBuffer) input.mark()).get())
-                    && '=' != b) ;
-
-            int position = input.reset().position();
-            int limit = token.limit();
-
+    `Max$2dAge` {
+        override fun value(input: ByteBuffer): Serializable? {
+            var input = input
+            input = input.slice()
+            while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
+            input = (input.reset() as ByteBuffer).slice()
+            var b: Byte
+            while (input.hasRemaining() && !Character.isWhitespace((input.mark() as ByteBuffer).get().also { b = it }
+                    .toInt())
+                && '='.code.toByte() != b
+            );
+            val position = input.reset().position()
+            val limit = token!!.limit()
             if (position == limit) {
-
-                while (input.hasRemaining() && '=' != input.get()) ;
-
-                CharBuffer parseme = UTF8.decode(input.slice());
-                Long l = null;
+                while (input.hasRemaining() && '='.code.toByte() != input.get());
+                val parseme: CharBuffer = HttpMethod.Companion.UTF8.decode(input.slice())
+                var l: Long? = null
                 try {
-                    l = Long.parseLong(parseme.toString().trim());
-                } catch (NumberFormatException e) {
-
+                    l = parseme.toString().trim { it <= ' ' }.toLong()
+                } catch (e: NumberFormatException) {
                 }
-                return l;
+                return l
             }
-
-            return null;
+            return null
         }
-
     },
+
     /**
      * 5.2.3.  The Domain Attribute
-     * <p/>
+     *
+     *
      * If the attribute-name case-insensitively matches the string "Domain",
      * the user agent MUST process the cookie-av as follows.
-     * <p/>
+     *
+     *
      * If the attribute-value is empty, the behavior is undefined.  However,
      * the user agent SHOULD ignore the cookie-av entirely.
-     * <p/>
+     *
+     *
      * If the first character of the attribute-value string is %x2E ("."):
-     * <p/>
+     *
+     *
      * Let cookie-domain be the attribute-value without the leading %x2E
      * (".") character.
-     * <p/>
+     *
+     *
      * Otherwise:
-     * <p/>
+     *
+     *
      * Let cookie-domain be the entire attribute-value.
-     * <p/>
+     *
+     *
      * Convert the cookie-domain to lower case.
-     * <p/>
+     *
+     *
      * Append an attribute to the cookie-attribute-list with an attribute-
      * name of Domain and an attribute-value of cookie-domain.
      */
     Domain {
-        @Override
-        public Serializable value(ByteBuffer input) {
-            input = input.slice();
-            while (input.hasRemaining() && Character.isWhitespace(((ByteBuffer) input.mark()).get())) ;
-            input = ((ByteBuffer) input.reset()).slice();
-            byte b;
-            while (input.hasRemaining() && !Character.isWhitespace(b = ((ByteBuffer) input.mark()).get())
-                    && '=' != b) ;
-
-            int position = input.reset().position();
-            int limit = token.limit();
-
+        override fun value(input: ByteBuffer): Serializable? {
+            var input = input
+            input = input.slice()
+            while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
+            input = (input.reset() as ByteBuffer).slice()
+            var b: Byte
+            while (input.hasRemaining() && !Character.isWhitespace((input.mark() as ByteBuffer).get().also { b = it }
+                    .toInt())
+                && '='.code.toByte() != b
+            );
+            val position = input.reset().position()
+            val limit = token!!.limit()
             if (position == limit) {
-
-                while (input.hasRemaining() && '=' != input.get()) ;
-
-                return ByteBuffer.allocate((input = input.slice()).limit()).put(input).array();
+                while (input.hasRemaining() && '='.code.toByte() != input.get());
+                return ByteBuffer.allocate(input.slice().also { input = it }.limit()).put(input).array()
             }
-
-            return null;
+            return null
         }
-
     },
 
     /**
      * 5.2.4.  The Path Attribute
-     * <p/>
+     *
+     *
      * If the attribute-name case-insensitively matches the string "Path",
      * the user agent MUST process the cookie-av as follows.
-     * <p/>
+     *
+     *
      * If the attribute-value is empty or if the first character of the
      * attribute-value is not %x2F ("/"):
-     * <p/>
+     *
+     *
      * Let cookie-path be the default-path.
-     * <p/>
+     *
+     *
      * Otherwise:
-     * <p/>
+     *
+     *
      * Let cookie-path be the attribute-value.
-     * <p/>
+     *
+     *
      * Append an attribute to the cookie-attribute-list with an attribute-
      * name of Path and an attribute-value of cookie-path.
      */
     Path {
-        @Override
-        public Serializable value(ByteBuffer input) {
-            input = input.slice();
-            while (input.hasRemaining() && Character.isWhitespace(((ByteBuffer) input.mark()).get())) ;
-            input = ((ByteBuffer) input.reset()).slice();
-            byte b;
-            while (input.hasRemaining() && !Character.isWhitespace(b = ((ByteBuffer) input.mark()).get())
-                    && '=' != b) ;
-
-            int position = input.reset().position();
-            int limit = token.limit();
-
+        override fun value(input: ByteBuffer): Serializable? {
+            var input = input
+            input = input.slice()
+            while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
+            input = (input.reset() as ByteBuffer).slice()
+            var b: Byte
+            while (input.hasRemaining() && !Character.isWhitespace((input.mark() as ByteBuffer).get().also { b = it }
+                    .toInt())
+                && '='.code.toByte() != b
+            );
+            val position = input.reset().position()
+            val limit = token!!.limit()
             if (position == limit) {
-
-                while (input.hasRemaining() && '=' != input.get()) ;
-
-                return ByteBuffer.allocate((input = input.slice()).limit()).put(input).array();
+                while (input.hasRemaining() && '='.code.toByte() != input.get());
+                return ByteBuffer.allocate(input.slice().also { input = it }.limit()).put(input).array()
             }
-
-            return null;
+            return null
         }
     },
+
     /**
      * 5.2.5.  The Secure Attribute
-     * <p/>
+     *
+     *
      * If the attribute-name case-insensitively matches the string "Secure",
      * the user agent MUST append an attribute to the cookie-attribute-list
      * with an attribute-name of Secure and an empty attribute-value.
      */
     Secure {
-        @Override
-        public Serializable value(ByteBuffer input) {
-            input.rewind();
-            ByteBuffer tok = token.duplicate();
-            byte b;
+        override fun value(input: ByteBuffer): Serializable? {
+            input.rewind()
+            val tok = token!!.duplicate()
+            var b: Byte
             do {
-                while (input.hasRemaining() && Character.isWhitespace(((ByteBuffer) input.mark()).get())) ;
-                tok.rewind();
+                while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
+                tok.rewind()
                 while (tok.hasRemaining() && input.hasRemaining()
-                        && tok.get() == Character.toLowerCase(input.get())) ;
+                    && tok.get() == input.get().lowercaseChar()
+                );
                 if (!tok.hasRemaining()) {
-                    boolean keep = false;
-                    while (input.hasRemaining() && ';' != (b = ((ByteBuffer) input.mark()).get())
-                            && (keep = Character.isWhitespace(b))) ;
-                    if (keep)
-                        return Boolean.TRUE;
+                    var keep = false
+                    while (input.hasRemaining() && ';'.code.toByte() != (input.mark() as ByteBuffer).get()
+                            .also { b = it } && Character.isWhitespace(b.toInt()).also { keep = it }
+                    );
+                    if (keep) return Boolean.TRUE
                 }
-            } while (input.hasRemaining());
-
-            return null;
+            } while (input.hasRemaining())
+            return null
         }
     },
+
     /**
      * 5.2.6.  The HttpOnly Attribute
-     * <p/>
+     *
+     *
      * If the attribute-name case-insensitively matches the string
      * "HttpOnly", the user agent MUST append an attribute to the cookie-
      * attribute-list with an attribute-name of HttpOnly and an empty
      * attribute-value.
      */
     HttpOnly {
-        @Override
-        public Serializable value(ByteBuffer input) {
-            input.rewind();
-            ByteBuffer tok = token.duplicate();
-            byte b;
+        override fun value(input: ByteBuffer): Serializable? {
+            input.rewind()
+            val tok = token!!.duplicate()
+            var b: Byte
             do {
-                while (input.hasRemaining() && Character.isWhitespace(((ByteBuffer) input.mark()).get())) ;
-                tok.rewind();
+                while (input.hasRemaining() && Character.isWhitespace((input.mark() as ByteBuffer).get().toInt()));
+                tok.rewind()
                 while (tok.hasRemaining() && input.hasRemaining()
-                        && tok.get() == Character.toLowerCase(input.get())) ;
+                    && tok.get() == input.get().lowercaseChar()
+                );
                 if (!tok.hasRemaining()) {
-                    boolean keep = false;
-                    while (input.hasRemaining() && ';' != (b = ((ByteBuffer) input.mark()).get())
-                            && (keep = Character.isWhitespace(b))) ;
+                    var keep = false
+                    while (input.hasRemaining() && ';'.code.toByte() != (input.mark() as ByteBuffer).get()
+                            .also { b = it } && Character.isWhitespace(b.toInt()).also { keep = it }
+                    );
                     if (keep) {
-                        return Boolean.TRUE;
+                        return Boolean.TRUE
                     }
                 }
-            } while (input.hasRemaining());
-
-            return null;
+            } while (input.hasRemaining())
+            return null
         }
     };
-    final String key = URLDecoder.decode(name().replace('$', '%')).toLowerCase();
-    ByteBuffer token = UTF8.encode(key);
 
-    public static EnumMap<CookieRfc6265Util, Serializable> parseSetCookie(ByteBuffer input) {
-        ArrayList<ByteBuffer> a = new ArrayList<>();
-        while (input.hasRemaining()) {
-            int begin = input.position();
-            byte b = 0;
-            while (input.hasRemaining() && ';' != (b = ((ByteBuffer) input.mark()).get())) ;
-            a.add(((ByteBuffer) (b == ';' ? input.duplicate().reset() : input.duplicate()).flip()
-                    .position(begin)).slice());
-        }
-        EnumMap<CookieRfc6265Util, Serializable> res;
-        res = new EnumMap<>(CookieRfc6265Util.class);
-        Iterator<ByteBuffer> iterator = a.iterator();
-        ByteBuffer next = iterator.next();
-        Serializable n = Name.value(next);
-        res.put(Name, n);
-        Serializable v = Value.value(next);
-        res.put(Value, v);
+    val key = URLDecoder.decode(name.replace('$', '%')).lowercase(Locale.getDefault())
+    var token: ByteBuffer? = HttpMethod.Companion.UTF8.encode(key)
+    abstract fun value(token: ByteBuffer): Serializable?
 
-        while (iterator.hasNext()) {
-            ByteBuffer byteBuffer = iterator.next();
-            CookieRfc6265Util[] values = values();
-            for (int i = 2; i < values.length; i++) {
-
-                CookieRfc6265Util cookieRfc6265Util = values[i];
-                if (!res.containsKey(cookieRfc6265Util)) {
-                    Serializable value = cookieRfc6265Util.value((ByteBuffer) byteBuffer.rewind());
-                    if (null != value) {
-                        res.put(cookieRfc6265Util, value);
-                    }
-                }
+    companion object {
+        fun parseSetCookie(input: ByteBuffer): EnumMap<CookieRfc6265Util, Serializable?> {
+            val a = ArrayList<ByteBuffer>()
+            while (input.hasRemaining()) {
+                val begin = input.position()
+                var b: Byte = 0
+                while (input.hasRemaining() && ';'.code.toByte() != (input.mark() as ByteBuffer).get().also { b = it });
+                a.add(((if (b == ';'.code.toByte()) input.duplicate().reset() else input.duplicate()).flip()
+                    .position(begin) as ByteBuffer).slice())
             }
-        }
-        return res;
-    }
-
-    /**
-     * @param filter ByteBuffers as keys for cookies
-     * @param input  unescaped bytes split by ';'
-     * @return slist of cookies
-     */
-    public static Pair<Pair<ByteBuffer, ByteBuffer>, ? extends Pair> parseCookie(ByteBuffer input,
-                                                                                 ByteBuffer... filter) {
-        Pair<?, ?> ret = null;
-        ByteBuffer buf = input.duplicate().slice();
-
-        while (buf.hasRemaining()) {
-            while (buf.hasRemaining() && Character.isWhitespace(((ByteBuffer) buf.mark()).get())) ;
-            int keyBegin = buf.reset().position();
-
-            while (buf.hasRemaining() && '=' != ((ByteBuffer) buf.mark()).get()) ;
-            ByteBuffer ckey = ((ByteBuffer) buf.duplicate().reset().flip().position(keyBegin)).slice();
-            while (buf.hasRemaining() && Character.isWhitespace(((ByteBuffer) buf.mark()).get())) ;
-            int vBegin = buf.reset().position();
-
-            while (buf.hasRemaining()) {
-                switch (((ByteBuffer) buf.mark()).get()) {
-                    case ';':
-                    case '\r':
-                    case '\n':
-                        break;
-                    default:
-                        continue;
-                }
-                break;
-            }
-            if (filter.length > 0) {
-                for (ByteBuffer filt : filter) {
-                    if (ckey.limit() == filt.limit()) {
-                        ckey.mark();
-                        filt.rewind();
-                        while (filt.hasRemaining() && ckey.hasRemaining() && filt.get() == ckey.get()) ;
-                        if (!filt.hasRemaining() && !ckey.hasRemaining()) {
-                            ret =
-                                    new Pair<Pair<Buffer, ByteBuffer>, Pair<?, ?>>(new Pair<>(ckey.reset(), ((ByteBuffer) buf.duplicate().reset().flip()
-                                            .position(vBegin)).slice()), ret);
-                            break;
+            val res: EnumMap<CookieRfc6265Util, Serializable?>
+            res = EnumMap(CookieRfc6265Util::class.java)
+            val iterator: Iterator<ByteBuffer> = a.iterator()
+            val next = iterator.next()
+            val n = Name.value(next)
+            res[Name] = n
+            val v = Value.value(next)
+            res[Value] = v
+            while (iterator.hasNext()) {
+                val byteBuffer = iterator.next()
+                val values = values()
+                for (i in 2 until values.size) {
+                    val cookieRfc6265Util = values[i]
+                    if (!res.containsKey(cookieRfc6265Util)) {
+                        val value = cookieRfc6265Util.value(byteBuffer.rewind() as ByteBuffer)
+                        if (null != value) {
+                            res[cookieRfc6265Util] = value
                         }
                     }
                 }
-            } else
-                ret =
-                        new Pair<Pair<ByteBuffer, ByteBuffer>, Pair<?, ?>>(new Pair<>(ckey, ((ByteBuffer) buf.duplicate().reset().flip().position(vBegin))
-                                .slice()), ret);
+            }
+            return res
         }
-        return (Pair<Pair<ByteBuffer, ByteBuffer>, ? extends Pair>) ret;
-    }
 
-    public abstract Serializable value(ByteBuffer token);
+        /**
+         * @param filter ByteBuffers as keys for cookies
+         * @param input  unescaped bytes split by ';'
+         * @return slist of cookies
+         */
+        fun parseCookie(
+            input: ByteBuffer?,
+            vararg filter: ByteBuffer
+        ): Pair<Pair<ByteBuffer, ByteBuffer>, out Pair<*, *>>? {
+            var ret: Pair<*, *>? = null
+            val buf = input!!.duplicate().slice()
+            while (buf.hasRemaining()) {
+                while (buf.hasRemaining() && Character.isWhitespace((buf.mark() as ByteBuffer).get().toInt()));
+                val keyBegin = buf.reset().position()
+                while (buf.hasRemaining() && '='.code.toByte() != (buf.mark() as ByteBuffer).get());
+                val ckey = (buf.duplicate().reset().flip().position(keyBegin) as ByteBuffer).slice()
+                while (buf.hasRemaining() && Character.isWhitespace((buf.mark() as ByteBuffer).get().toInt()));
+                val vBegin = buf.reset().position()
+                while (buf.hasRemaining()) {
+                    when ((buf.mark() as ByteBuffer).get()) {
+                        ';', '\r', '\n' -> {}
+                        else -> continue
+                    }
+                    break
+                }
+                if (filter.size > 0) {
+                    for (filt in filter) {
+                        if (ckey.limit() == filt.limit()) {
+                            ckey.mark()
+                            filt.rewind()
+                            while (filt.hasRemaining() && ckey.hasRemaining() && filt.get() == ckey.get());
+                            if (!filt.hasRemaining() && !ckey.hasRemaining()) {
+                                ret = Pair(Pair<Buffer, ByteBuffer>(ckey.reset(), (buf.duplicate().reset().flip()
+                                    .position(vBegin) as ByteBuffer).slice()), ret)
+                                break
+                            }
+                        }
+                    }
+                } else ret = Pair(Pair(ckey, (buf.duplicate().reset().flip().position(vBegin) as ByteBuffer)
+                    .slice()), ret)
+            }
+            return ret as Pair<Pair<ByteBuffer, ByteBuffer>, out Pair<*, *>>?
+        }
+    }
 }

@@ -1,15 +1,16 @@
-package rxf.server;
+package rxf.server
 
 /**
  * User: jim
  * Date: 4/30/12
  * Time: 12:18 AM
  */
-public enum CompressionTypes {
+enum class CompressionTypes(vararg suffix: String) {
     gzip("gz"), bzip2("bz2"), xz;
-    public String suffix;
 
-    CompressionTypes(String... suffix) {
-        this.suffix = suffix.length == 0 ? name() : suffix[0];
+    var suffix: String
+
+    init {
+        this.suffix = if (suffix.size == 0) name else suffix[0]
     }
 }

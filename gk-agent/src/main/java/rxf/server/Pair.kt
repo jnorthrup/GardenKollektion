@@ -1,48 +1,34 @@
-package rxf.server;
+package rxf.server
 
 /**
  * Simple pair class.
  *
  * @param <A> any type
  * @param <B> any type
- */
-public class Pair<A, B> {
-    private final A a;
-    private final B b;
+</B></A> */
+class Pair<A, B>(a: A, b: B) {
+    val a: A?
+    val b: B?
 
-    public Pair(A a, B b) {
-        this.a = a;
-        this.b = b;
+    init {
+        this.a = a
+        this.b = b
     }
 
-    public A getA() {
-        return a;
-    }
-
-    public B getB() {
-        return b;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this != o) {
-            if (o instanceof Pair) {
-
-                Pair pair = (Pair) o;
-
-                return !((null != a ? !a.equals(pair.a) : null != pair.a) || (null != b ? !b.equals(pair.b)
-                        : null != pair.b));
-
+    override fun equals(o: Any?): Boolean {
+        if (this !== o) {
+            if (o is Pair<*, *>) {
+                val pair = o
+                return !((if (null != a) a != pair.a else null != pair.a) || if (null != b) b != pair.b else null != pair.b)
             }
-            return false;
+            return false
         }
-        return true;
+        return true
     }
 
-    @Override
-    public int hashCode() {
-        int result = null != a ? a.hashCode() : 0;
-        result = 31 * result + (null != b ? b.hashCode() : 0);
-        return result;
+    override fun hashCode(): Int {
+        var result = a?.hashCode() ?: 0
+        result = 31 * result + (b?.hashCode() ?: 0)
+        return result
     }
 }

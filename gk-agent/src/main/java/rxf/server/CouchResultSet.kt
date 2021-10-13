@@ -1,23 +1,19 @@
-package rxf.server;
-
-import java.util.List;
-import java.util.Map;
+package rxf.server
 
 /**
  * User: jim
  * Date: 5/16/12
  * Time: 7:56 PM
  */
-public class CouchResultSet<K, V> {
+class CouchResultSet<K, V> {
+    var totalRows: Long = 0
+    var offset: Long = 0
+    var rows: List<tuple<K, V>>? = null
 
-    public long totalRows;
-    public long offset;
-    public List<tuple<K, V>> rows;
-
-    public static class tuple<K, V> {
-        public String id;
-        public K key;
-        public V value;
-        public Map<String, ?> doc;
+    class tuple<K, V> {
+        var id: String? = null
+        var key: K? = null
+        var value: V? = null
+        var doc: Map<String, *>? = null
     }
 }

@@ -1,68 +1,58 @@
-package rxf.server;
+package rxf.server
 
-import java.nio.channels.SelectionKey;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static one.xio.HttpHeaders.Content$2dLength;
-import static one.xio.HttpHeaders.ETag;
+import one.xio.HttpHeaders
+import java.nio.channels.SelectionKey
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * User: jim
  * Date: 5/29/12
  * Time: 1:58 PM
  */
-public abstract class ActionBuilder {
+abstract class ActionBuilder {
+    private val state = AtomicReference<Rfc822HeaderState>()
+    private var key: SelectionKey? = null
 
-    public static final String[] HEADER_INTEREST =
-            Rfc822HeaderState.staticHeaderStrings(ETag, Content$2dLength);
-    protected static ThreadLocal<ActionBuilder> currentAction =
-            new InheritableThreadLocal<ActionBuilder>();
-    private AtomicReference<Rfc822HeaderState> state = new AtomicReference<Rfc822HeaderState>();
-    private SelectionKey key;
-
-    public ActionBuilder() {
-        currentAction.set(this);
+    init {
+        currentAction.set(this)
     }
 
-    public static ActionBuilder get() {
-        if (currentAction.get() == null)
-            currentAction.set(new ActionBuilder() {
-                @Override
-                public TerminalBuilder fire() {
-                    throw new AbstractMethodError(
-                            "This is a ActionBuilder with no DbKeysBuilder and therefore now Terminal");
+    abstract fun fire(): TerminalBuilder?
+    override fun toString(): String {
+        return "ActionBuilder{state=$state, key=$key}"
+    }
+
+    fun state(): Rfc822HeaderState? {
+        var ret = state.get()
+        if (null == ret) state.set(Rfc822HeaderState(*HEADER_INTEREST).also { ret = it })
+        return ret
+    }
+
+    fun key(): SelectionKey? {
+        return key
+    }
+
+    fun state(state: Rfc822HeaderState): ActionBuilder =apply{
+        this.state.set(state)
+    }
+
+    fun key(key: SelectionKey?): ActionBuilder {
+        this.key = key
+        return this
+    }
+
+    companion object {
+        val HEADER_INTEREST: Array<String?> =
+            Rfc822HeaderState.Companion.staticHeaderStrings(HttpHeaders.ETag, HttpHeaders.`Content$2dLength`)
+        protected var currentAction: ThreadLocal<ActionBuilder?> = InheritableThreadLocal()
+        fun get(): ActionBuilder? {
+            if (currentAction.get() == null) currentAction.set(object : ActionBuilder() {
+                override fun fire(): TerminalBuilder? {
+                    throw AbstractMethodError(
+                        "This is a ActionBuilder with no DbKeysBuilder and therefore now Terminal")
                 }
-            });
-        return (ActionBuilder) currentAction.get();
+            })
+            return currentAction.get()
+        }
     }
-
-    public abstract TerminalBuilder fire();
-
-    @Override
-    public String toString() {
-        return "ActionBuilder{" + "state=" + state + ", key=" + key + '}';
-    }
-
-    public Rfc822HeaderState state() {
-        Rfc822HeaderState ret = this.state.get();
-        if (null == ret)
-            state.set(ret = new Rfc822HeaderState(HEADER_INTEREST));
-        return ret;
-    }
-
-    public SelectionKey key() {
-        return this.key;
-    }
-
-    public ActionBuilder state(Rfc822HeaderState state) {
-        this.state.set(state);
-        return this;
-    }
-
-    public ActionBuilder key(SelectionKey key) {
-        this.key = key;
-
-        return this;
-    }
-
 }

@@ -1,9 +1,7 @@
-package rxf.shared;
+package rxf.shared
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
 
 /**
  * User: jim
@@ -11,6 +9,5 @@ import java.lang.annotation.Target;
  * Time: 7:23 PM
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.PARAMETER)
-public @interface Key {
-}
+@Target(AnnotationTarget.VALUE_PARAMETER)
+annotation class Key 

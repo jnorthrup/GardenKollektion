@@ -1,8 +1,6 @@
-package rxf;
+package rxf
 
-import java.lang.annotation.Documented;
+import java.lang.annotation.Documented
 
 @Documented
-public @interface Seo {
-
-}
+annotation class Seo 
