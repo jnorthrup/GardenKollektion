@@ -1,12 +1,8 @@
 package gk.kademlia.agent.fsm
 
-import vec.util._a
-import java.nio.channels.SelectionKey
+import java.nio.channels.SelectionKey.OP_ACCEPT
 
-class acceptNode(override val a: KeyAction) : FsmNode {
-    override val w = null
-    override val r = null
-    override val c = null
-    override val interestOrder = _a[SelectionKey.OP_ACCEPT]
-    override val interest = computeInterest()
+class AcceptNode(override val process: KeyAction) : FsmNode {
+    override val interest: Int = OP_ACCEPT
+
 }

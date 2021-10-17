@@ -13,25 +13,26 @@ fun main() {
     serverSocketChannel.socket().bind(addr)
     serverSocketChannel.configureBlocking(false)
     lateinit var agentFsm: FSM
-    val top = acceptNode {
+
+
+    val top = AcceptNode {
         val accept = (it.channel() as ServerSocketChannel).accept()
         accept.configureBlocking(false)
         val buf = ByteBuffer.allocateDirect(80)
-
-        val fsmNode = readNode {
+        val fsmNode = ReadNode {
             val socketChannel = it.channel() as SocketChannel
             val read = socketChannel.read(buf)
-            if (!buf.hasRemaining() || read == -1) {
-
+            return@ReadNode if (!buf.hasRemaining() || read == -1) {
                 buf.flip()
-                val fsmNode = writeNode {
+                WriteNode {
                     if (buf.hasRemaining()) socketChannel.write(buf)
                     else socketChannel.close()
+                    return@WriteNode null
                 }
-                agentFsm.qUp(fsmNode, it)
-            }
+            } else null
         }
         agentFsm.qUp(fsmNode, null, accept)
+        return@AcceptNode null
     }
     agentFsm = FSM(top)
     agentFsm.qUp(top, null, serverSocketChannel)

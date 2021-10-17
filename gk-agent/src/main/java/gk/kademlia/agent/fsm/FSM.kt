@@ -16,7 +16,7 @@ class FSM(var topLevel: FsmNode? = null) : Runnable, AutoCloseable {
     var timeout: Long = 1
     var killswitch = false
     override fun run() {
-        this.selectorThread = Thread.currentThread()
+        selectorThread = Thread.currentThread()
 
         while (!killswitch && selector.isOpen) {
             synchronized(q) {
@@ -34,34 +34,25 @@ class FSM(var topLevel: FsmNode? = null) : Runnable, AutoCloseable {
 
                 }
             }
-            val select = selector.select(timeout)
+            val select = selector.select { key ->
+                key.takeIf { it.isValid }?.apply {
+                    val node: FsmNode =
+                        (attachment() as? FsmNode ?: topLevel ?: TODO("toplevel builtin functions not yet implemented"))
+                    node.process(this)?.let { qUp(it, this) }
+                }
+            }
             timeout = if (0 == select) min(timeout shl 1, timeoutMax)
-            else
-                1
-            if (0 != select)
-                innerloop(topLevel!!)
+            else 1
         }
     }
 
-    fun innerloop(protocoldecoder: FsmNode) {
-        val keys = selector.selectedKeys()
-        val i = keys.iterator()
-        while (i.hasNext()) {
-            val key = i.next()
-            i.remove()
-            if (key.isValid) {
-                val node: FsmNode = ((key.attachment() as? FsmNode) ?: topLevel!!)
-                node.process(key)
-            }
-        }
-    }
 
     override fun close() {
         try {
-            this.selector.close()
+            selector.close()
         } finally {
         }
-        this.selectorThread.interrupt()
+        selectorThread.interrupt()
 
     }
 
