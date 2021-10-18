@@ -28,7 +28,7 @@ fun main() {
     }
 }
 
-private fun echoAcceptor() = AcceptNode {
+fun echoAcceptor() = AcceptNode {
     val accept = (it.channel() as ServerSocketChannel).accept()
     accept.configureBlocking(false)
     val buf = ByteBuffer.allocateDirect(80)
