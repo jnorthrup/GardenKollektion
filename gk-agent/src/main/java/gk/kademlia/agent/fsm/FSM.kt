@@ -1,11 +1,11 @@
 package gk.kademlia.agent.fsm
 
 import vec.macros.Tripl3
-import java.nio.channels.ClosedChannelException
-import java.nio.channels.SelectableChannel
-import java.nio.channels.SelectionKey
-import java.nio.channels.Selector
+import java.net.InetSocketAddress
+import java.nio.channels.*
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import kotlin.math.min
 
 class FSM(var topLevel: FsmNode? = null) : Runnable, AutoCloseable {
@@ -14,11 +14,11 @@ class FSM(var topLevel: FsmNode? = null) : Runnable, AutoCloseable {
     var selector: Selector = Selector.open()
     var timeoutMax: Long = 1024
     var timeout: Long = 1
-    var killswitch = false
+
     override fun run() {
         selectorThread = Thread.currentThread()
 
-        while (!killswitch && selector.isOpen) {
+        while (selector.isOpen) {
             synchronized(q) {
                 while (q.isNotEmpty()) {
                     val s = q.remove()
@@ -64,7 +64,7 @@ class FSM(var topLevel: FsmNode? = null) : Runnable, AutoCloseable {
      * @param channel the Channel when selection Key is null
      */
     fun qUp(fsmNode: FsmNode, selectionKey: SelectionKey?, channel: SelectableChannel? = selectionKey?.channel()) {
-        channel?.takeIf { !killswitch && it.isOpen }?.run {
+        channel?.takeIf { it.isOpen }?.run {
             if (Thread.currentThread() === selectorThread) try {
                 register(selector, fsmNode.interest, fsmNode)
             } catch (e: ClosedChannelException) {
@@ -72,5 +72,37 @@ class FSM(var topLevel: FsmNode? = null) : Runnable, AutoCloseable {
             } else synchronized(q) { q.add(Tripl3.invoke(this, fsmNode.interest, fsmNode)) }
             selector.wakeup()
         }
+    }
+
+    companion object {
+        @JvmStatic
+        fun launch(
+            top: FsmNode,
+            executorService: ExecutorService = Executors.newCachedThreadPool(),
+            inetSocketAddress: InetSocketAddress = InetSocketAddress(2112),
+            channel: SelectableChannel = ServerSocketChannel.open(),
+        ) {
+            executorService.apply {
+                val agentFsm: FSM = FSM(top)
+                submit {
+                    val channel1 = channel.configureBlocking(false)
+                    (channel1 as? NetworkChannel)?.bind(inetSocketAddress)
+                    agentFsm.qUp(top, null, channel1)
+                    submit(agentFsm)
+                }
+                val lock = Object()
+                synchronized(lock) {
+                    while (!isShutdown) {
+                        lock.wait(1000)
+                    }
+                    /**
+                     * boilerplate shutdown code should be here.
+                     */
+                    agentFsm.selector.close()//the kill switch
+                }
+
+            }
+        }
+
     }
 }

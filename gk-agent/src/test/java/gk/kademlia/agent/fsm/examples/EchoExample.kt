@@ -1,28 +1,14 @@
 package gk.kademlia.agent.fsm
 
-import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.ServerSocketChannel
 import java.nio.channels.SocketChannel
-import java.util.concurrent.Executors
 
 fun main() {
     //typical boilerplate
-    Executors.newCachedThreadPool().apply {
-        submit {
-            val top = echoAcceptor()
-            val agentFsm: FSM = FSM(top)
-            agentFsm.qUp(top, null, ServerSocketChannel.open().bind(InetSocketAddress(2112)).configureBlocking(false))
-            submit(agentFsm)
-        }
-        val lock = Object()
-        synchronized(lock) {
-            while (!isShutdown) {
-                lock.wait(5000)
-            }
-        }
-    }
+    FSM.launch(echoAcceptor())
 }
+
 
 fun echoAcceptor() = AcceptNode {
     val accept = (it.channel() as ServerSocketChannel).accept()

@@ -43,7 +43,7 @@ fun main() {
 
     val lock = Object()
     synchronized(lock) {
-        while (!agentFsm.killswitch) {
+        while (!agentFsm.selector.isOpen) {
             lock.wait(5000)
         }
     }
