@@ -21,17 +21,15 @@ fun main() {
         val sa = datagramChannel.receive(buf)
         if (buf.hasRemaining()) {
             buf.clear()
-            top;
+            top
         } else {
-            lateinit var writeNode: WriteNode
-            writeNode = WriteNode {
+            WriteNode {
                 datagramChannel.send(buf.flip(), sa)
                 if (!buf.hasRemaining()) {
                     buf.clear()
                     top
                 } else null
             }
-            writeNode
         }
     }
     FSM.launch(top, channel = DatagramChannel.open())
