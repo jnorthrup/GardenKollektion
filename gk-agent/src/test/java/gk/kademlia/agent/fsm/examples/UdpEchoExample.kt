@@ -1,9 +1,7 @@
 package gk.kademlia.agent.fsm
 
-import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.DatagramChannel
-import java.util.concurrent.Executors
 
 /**
  *
@@ -24,28 +22,18 @@ fun main() {
         if (buf.hasRemaining()) {
             buf.clear()
             top;
-        } else
-            WriteNode {
+        } else {
+            lateinit var writeNode: WriteNode
+            writeNode = WriteNode {
                 datagramChannel.send(buf.flip(), sa)
                 if (!buf.hasRemaining()) {
                     buf.clear()
                     top
                 } else null
             }
-    }
-    val threadPool = Executors.newCachedThreadPool()
-    lateinit var agentFsm: FSM
-
-    //typical boilerplate
-    agentFsm = FSM(top)
-    agentFsm.qUp(top, null, DatagramChannel.open().bind(InetSocketAddress(2112)).configureBlocking(false))
-    threadPool.submit(agentFsm)
-
-    val lock = Object()
-    synchronized(lock) {
-        while (!agentFsm.selector.isOpen) {
-            lock.wait(5000)
+            writeNode
         }
     }
+    FSM.launch(top, channel = DatagramChannel.open())
 }
 
