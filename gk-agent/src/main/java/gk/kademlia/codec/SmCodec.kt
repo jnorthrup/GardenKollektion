@@ -1,15 +1,10 @@
-package gk.kademlia.agent
+package gk.kademlia.codec
 
-import vec.macros.*
+import gk.kademlia.agent.fsm.SimpleMessage
+import vec.macros.`➤`
+import vec.macros.t2
+import vec.macros.toVect0r
 import java.nio.ByteBuffer
-
-interface Codec<Evt, Serde> {
-    fun send(event: Evt): Serde
-    fun recv(ser: Serde): Evt
-}
-
-/**like RFC822 smtp message*/
-typealias SimpleMessage = Pai2<Vect02<String, String>, String>
 
 class SmCodec : Codec<SimpleMessage, ByteBuffer> {
     override fun send(event: SimpleMessage): ByteBuffer = event.let { (hdr, body) ->
@@ -22,4 +17,3 @@ class SmCodec : Codec<SimpleMessage, ByteBuffer> {
         hdrs.split("\n").map { it.split(":\\s?".toRegex(), 2).let { (a, b) -> a t2 b } }.toVect0r() t2 bod
     }
 }
-
