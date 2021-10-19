@@ -15,13 +15,6 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
  */
 
 fun main() {
-    //typical boilerplate
-    val threadPool = Executors.newCachedThreadPool()
-    val udpChannel = DatagramChannel.open()
-    val addr = InetSocketAddress(2112)
-    udpChannel.socket().bind(addr)
-    udpChannel.configureBlocking(false)
-    lateinit var agentFsm: FSM
 
     val buf: ByteBuffer = ByteBuffer.allocate(20)
     lateinit var top: ReadNode
@@ -40,9 +33,12 @@ fun main() {
                 } else null
             }
     }
+    val threadPool = Executors.newCachedThreadPool()
+    lateinit var agentFsm: FSM
 
+    //typical boilerplate
     agentFsm = FSM(top)
-    agentFsm.qUp(top, null, udpChannel)
+    agentFsm.qUp(top, null, DatagramChannel.open().bind(InetSocketAddress(2112)).configureBlocking(false))
     threadPool.submit(agentFsm)
 
     val lock = Object()

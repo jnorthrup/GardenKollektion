@@ -8,22 +8,18 @@ import java.util.concurrent.Executors
 
 fun main() {
     //typical boilerplate
-    val threadPool = Executors.newCachedThreadPool()
-    val serverSocketChannel = ServerSocketChannel.open()
-    val addr = InetSocketAddress(2112)
-    serverSocketChannel.socket().bind(addr)
-    serverSocketChannel.configureBlocking(false)
-    lateinit var agentFsm: FSM
-
-    val top = echoAcceptor()
-    agentFsm = FSM(top)
-    agentFsm.qUp(top, null, serverSocketChannel)
-    threadPool.submit(agentFsm)
-
-    val lock = Object()
-    synchronized(lock) {
-        while (!agentFsm.killswitch) {
-            lock.wait(5000)
+    Executors.newCachedThreadPool().apply {
+        submit {
+            val top = echoAcceptor()
+            val agentFsm: FSM = FSM(top)
+            agentFsm.qUp(top, null, ServerSocketChannel.open().bind(InetSocketAddress(2112)).configureBlocking(false))
+            submit(agentFsm)
+        }
+        val lock = Object()
+        synchronized(lock) {
+            while (!isShutdown) {
+                lock.wait(5000)
+            }
         }
     }
 }
