@@ -7,7 +7,7 @@ import cursors.io.FibonacciReporter
 import gk.kademlia.id.WorkerNUID
 import gk.kademlia.net.NetMask
 import gk.kademlia.routing.RoutingTable
-import org.junit.*
+import org.junit.Test
 import vec.macros.t2
 import vec.util.debug
 import vec.util.logDebug
@@ -67,13 +67,13 @@ class RouteTableTest {
 
             val ich = nuid.ops.one
             run {
-                val linkedSetOf = linkedSetOf(ich).also(LinkedHashSet<Byte>::clear)
+                val linkedSetOf = linkedSetOf(ich).also { it.clear() }
 
                 while (linkedSetOf.size < 3) linkedSetOf.add(nuid.run { random(netmask.bits - 1) })
                 linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
             }
             run {
-                val linkedSetOf = linkedSetOf(ich).also(LinkedHashSet<Byte>::clear)
+                val linkedSetOf = linkedSetOf(ich).also { it.clear() }
 
                 while (linkedSetOf.size < 7) linkedSetOf.add(nuid.run { random(1) })
                 linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
@@ -102,15 +102,15 @@ class RouteTableTest {
                     WorkerNUID(id1) t2 URI("urn:$id1")
                 })
 
-                val ich = nuid.ops.one
+                val satu = nuid.ops.one
                 run {
-                    val linkedSetOf = linkedSetOf(ich).also(LinkedHashSet<Byte>::clear)
+                    val linkedSetOf = linkedSetOf(satu).also { it.clear() }
 
                     while (linkedSetOf.size < 3) linkedSetOf.add(nuid.run { random(netmask.bits - 1) })
                     linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
                 }
                 run {
-                    val linkedSetOf = linkedSetOf(ich).also(LinkedHashSet<Byte>::clear)
+                    val linkedSetOf = linkedSetOf(satu).also { it.clear() }
 
                     while (linkedSetOf.size < 7) linkedSetOf.add(nuid.run { random(1) })
                     linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
@@ -118,7 +118,7 @@ class RouteTableTest {
                 debug { }
 
                 assertEquals(7, routingTable.buckets[0].size)
-                assertEquals(1, routingTable.buckets[5].size)
+                assertEquals(3, routingTable.buckets[5].size)// todo, drop fog of war for a flat cap.
 
                 val fibonacciReporter = FibonacciReporter(20000, "routed")
                 for (n in 0 until 20000) {
@@ -143,13 +143,13 @@ class RouteTableTest {
 
                 val ich = nuid.ops.one
                 run {
-                    val linkedSetOf = linkedSetOf(ich).also(LinkedHashSet<Byte>::clear)
+                    val linkedSetOf = linkedSetOf(ich).also { it.clear() }
 
                     while (linkedSetOf.size < 3) linkedSetOf.add(nuid.run { random(netmask.bits - 1) })
                     linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
                 }
                 run {
-                    val linkedSetOf = linkedSetOf(ich).also(LinkedHashSet<Byte>::clear)
+                    val linkedSetOf = linkedSetOf(ich).also { it.clear() }
 
                     while (linkedSetOf.size < 7) linkedSetOf.add(nuid.run { random(1) })
                     linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
@@ -175,13 +175,13 @@ class RouteTableTest {
 
         val ich = nuid.ops.one
         run {
-            val linkedSetOf = linkedSetOf(ich).also(LinkedHashSet<Byte>::clear)
+            val linkedSetOf = linkedSetOf(ich).also { it.clear() }
 
             while (linkedSetOf.size < 3) linkedSetOf.add(nuid.run { random(netmask.bits - 1) })
             linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
         }
         run {
-            val linkedSetOf = linkedSetOf(ich).also(LinkedHashSet<Byte>::clear)
+            val linkedSetOf = linkedSetOf(ich).also { it.clear() }
 
             while (linkedSetOf.size < 7) linkedSetOf.add(nuid.run { random(1) })
             linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }

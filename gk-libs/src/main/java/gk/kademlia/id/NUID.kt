@@ -23,10 +23,10 @@ interface NUID<Primitive : Comparable<Primitive>> {
             val uBits = netmask.bits
             (distance?.takeIf { it <= uBits } ?: nextInt(uBits)).let { distance ->
                 linkedSetOf<Int>().apply {
-                    while (size.toInt() < distance.toInt()) add(nextInt(until = uBits).toInt())
+                    while (size < distance) add(nextInt(uBits))
                 }
             }.sorted().forEach {
-                accum = xor(accum, shl(one, it.toInt()))
+                accum = xor(accum, shl(one, it))
             }
             accum
         }
