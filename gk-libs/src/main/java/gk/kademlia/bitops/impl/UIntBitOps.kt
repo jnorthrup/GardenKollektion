@@ -11,3 +11,13 @@ object UIntBitOps : BitOps<UInt> {
     override val plus: (UInt, UInt) -> UInt get() = UInt::plus
     override val minus: (UInt, UInt) -> UInt get() = UInt::minus
 }
+
+object IntBitOps : BitOps<Int> {
+    override val one: Int get() = 1.toInt()
+    override val xor: (Int, Int) -> Int get() = Int::xor
+    override val and: (Int, Int) -> Int get() = Int::and
+    override val shl: (Int, Int) -> Int get() = Int::shl
+    override val shr: (Int, Int) -> Int get() = Int::shr
+    override val plus: (Int, Int) -> Int get() = Int::plus
+    override val minus: (Int, Int) -> Int get() = Int::minus
+}

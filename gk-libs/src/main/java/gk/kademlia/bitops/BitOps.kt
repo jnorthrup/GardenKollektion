@@ -1,5 +1,7 @@
 package gk.kademlia.bitops
 
+import gk.kademlia.bitops.impl.*
+
 interface BitOps<Primitive : Comparable<Primitive>> {
     val xor: (Primitive, Primitive) -> Primitive
     val and: (Primitive, Primitive) -> Primitive
@@ -8,23 +10,32 @@ interface BitOps<Primitive : Comparable<Primitive>> {
     val shr: (Primitive, Int) -> Primitive
     val plus: (Primitive, Primitive) -> Primitive
     val minus: (Primitive, Primitive) -> Primitive
-}
+    fun toNumber(x: Primitive): Number = x.let {
+        when (one) {
+            is Number -> it as Number
+            is UByte -> (it as UByte).toInt()
+            is UShort -> (it as UShort).toInt()
+            is UInt -> (it as UInt).toLong()
+            else -> (it).toString().toBigInteger()
 
-/**
- * https://stackoverflow.com/a/48924178
- *
- * Here are the safe and portable versions of the zig zag mappings for 64b integers in C (note the arithmetic negation):
- *
- * #include <stdint.h>
- *
- * uint64_t zz_map( int64_t x )
- * {
- * return ( ( uint64_t ) x << 1 ) ^ -( ( uint64_t ) x >> 63 );
- * }
- *
- * int64_t zz_unmap( uint64_t y )
- * {
- * return ( int64_t ) ( ( y >> 1 ) ^ -( y & 0x1 ) );
- * }*/
-inline fun zz_map(x: Long): ULong = ((x.toULong()) shl 1) xor (-((x.toULong()) shr 63).toLong()).toULong()
-inline fun zz_unmap(y: ULong): Long = ((y shr 1) xor ((-(y and 1.toULong()).toLong()).toULong())).toLong()
+        }
+    }
+
+    companion object {
+        /**
+         * minimum bitops types for the intended bitcount of NUID
+         */
+        fun <Primitive : Comparable<Primitive>> minOps(size: UInt) =
+            when (size) {
+                in UInt.MIN_VALUE..7u -> ByteBitOps
+                8u -> UByteBitOps
+                in 9u..15u -> ShortBitOps
+                16u -> UShortBitOps
+                in 17u..31u -> IntBitOps
+                32u -> UIntBitOps
+                in 33u..63u -> LongBitOps
+                64u -> ULongBitOps
+                else -> BigIntOps
+            } as BitOps<Primitive>
+    }
+}

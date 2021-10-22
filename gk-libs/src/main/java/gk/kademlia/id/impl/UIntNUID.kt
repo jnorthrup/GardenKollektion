@@ -1,11 +1,10 @@
 package gk.kademlia.id.impl
 
-import gk.kademlia.NetMask
 import gk.kademlia.bitops.impl.UIntBitOps
 import gk.kademlia.id.NUID
+import gk.kademlia.net.NetMask
 
-abstract class UIntNUID<Sz : NetMask>(override var id: UInt? = null) : NUID<UInt> {
+abstract class UIntNUID<Sz : NetMask<UInt>>(override var id: UInt? = null) : NUID<UInt> {
 
     override val ops = UIntBitOps
 }
-

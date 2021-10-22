@@ -6,4 +6,3 @@ import gk.kademlia.id.NUID
 abstract class UByteNUID(override var id: UByte? = null) : NUID<UByte> {
     override val ops = UByteBitOps
 }
-
