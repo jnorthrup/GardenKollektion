@@ -27,7 +27,7 @@ class RouteTableTest {
     @Test
     fun testRouteAdd() {
         val NUID = nuid
-        var routingTable = RoutingTable<Byte, NetMask.Companion.warmSz>(NUID, null)
+        var routingTable = RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID, null)
 
         routingTable.addRoute(nuid.run {
             val id1 = random(netmask.bits)
@@ -54,7 +54,7 @@ class RouteTableTest {
         var c = 0
 
 
-        routingTable = object : RoutingTable<Byte, NetMask.Companion.warmSz>(NUID, c++) {}
+        routingTable = object : RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID, c++) {}
 
         routingTable.addRoute(nuid.run {
             val id1 = random(nuid.netmask.bits)
@@ -90,7 +90,7 @@ class RouteTableTest {
                 "bits: ${routingTable.agentNUID.netmask.bits} fog: ${routingTable.fogOfWar} total: ${routingTable.buckets.sumOf { it.size }} bits/count: ${routingTable.buckets.mapIndexed { x, y -> x.inc() to y.size }}"
             }
         }
-        routingTable = object : RoutingTable<Byte, NetMask.Companion.warmSz>(NUID, c++) {}
+        routingTable = object : RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID, c++) {}
 
         routingTable.addRoute(nuid.run {
             val id1 = random(netmask.bits)
@@ -135,7 +135,7 @@ class RouteTableTest {
                     }"
                 }
             }
-        routingTable = object : RoutingTable<Byte, NetMask.Companion.warmSz>(NUID, c++) {}
+        routingTable = object : RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID, c++) {}
 
         routingTable.addRoute(nuid.run {
             val id1 = random(netmask.bits)
@@ -149,7 +149,6 @@ class RouteTableTest {
             val ich = nuid.ops.one
             run {
                 val linkedSetOf = linkedSetOf(ich).also { it.clear() }
-
                 while (linkedSetOf.size < 3) linkedSetOf.add(nuid.run { random(netmask.bits - 1) })
                 linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
             }
@@ -171,7 +170,7 @@ class RouteTableTest {
                 "bits: ${routingTable.agentNUID.netmask.bits} fog: ${routingTable.fogOfWar} total: ${routingTable.buckets.sumOf { it.size }} bits/count: ${routingTable.buckets.mapIndexed { x, y -> x.inc() to y.size }}"
             }
         }
-        routingTable = object : RoutingTable<Byte, NetMask.Companion.warmSz>(NUID, c++) {}
+        routingTable = object : RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID, c++) {}
 
         routingTable.addRoute(nuid.run {
             val id1 = random(netmask.bits)

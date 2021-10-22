@@ -4,5 +4,5 @@ import gk.kademlia.id.impl.ByteNUID
 import gk.kademlia.net.NetMask
 
 class ElectionNUID(id: Byte? = null) : ByteNUID(id) {
-    override val netmask = NetMask.Companion.hotSz
+    override val netmask = NetMask.Companion.HotSz
 }

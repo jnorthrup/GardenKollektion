@@ -1,3 +1,5 @@
+@file:Suppress("FunctionName", "KDocMissingDocumentation")
+
 package gk.kademlia.agent.fsm
 
 import gk.kademlia.codec.SmCodec
@@ -9,15 +11,15 @@ import java.nio.channels.SelectionKey
 typealias KeyAction = (SelectionKey) -> FsmNode?
 
 /**like RFC822 smtp message*/
-
 typealias SimpleMessage = Pai2<Vect0r<Pai2<String, String>>, String>
 typealias ReifiedMessage = Pair<List<Pair<String, String>>, String>
 
-val SimpleMessage.serialize get() = (first.toList().map { it.pair } to second)
-val ReifiedMessage.deserialize get() = (first α { Tw1n(it) } t2 second)
+val SimpleMessage.serialize: ReifiedMessage get() = (first.toList().map { it.pair } to second)
+val ReifiedMessage.deserialize: SimpleMessage get() = (first α { Tw1n(it) } t2 second)
 
-val SimpleMessage.toChunk get() = SmCodec.send(this).run { Tripl3("BYTE", limit(), this) }
-val ByteBuffer.fromChunk get() = SmCodec.recv(also { long }.slice())
+val SimpleMessage.toChunk: Tripl3<String, Int, ByteBuffer>
+    get() = SmCodec.send(this).run { Tripl3("BYTE", limit(), this) }
+val ByteBuffer.fromChunk: Pai2<Pai2<Int, (Int) -> Pai2<String, String>>, String>? get() = SmCodec.recv(also { long }.slice())
 
 
 /**
@@ -37,7 +39,7 @@ fun WriteChunk(chunk: Chunk, next: FsmNode): WriteNode = ByteBuffer.allocate(8).
     this.put(bytes)
     repeat(4 - bytes.size) { this.put(' '.code.toByte()) }
     this.putInt(chunk.second)
-}.flip().let { buf ->
+}.flip().let { buf: ByteBuffer ->
     WriteNode { key: SelectionKey ->
         (key.channel() as ByteChannel).let { chan ->
             chan.write(buf)
@@ -59,10 +61,10 @@ fun WriteChunk(chunk: Chunk, next: FsmNode): WriteNode = ByteBuffer.allocate(8).
  * reads a chunk.  when the chunk is done the "tee" is called
  */
 @JvmOverloads
-fun ReadChunk(yeild: ((Chunk) -> Unit), next: FsmNode = Terminal()) = run {
+fun ReadChunk(yeild: ((Chunk) -> Unit), next: FsmNode = Terminal()): ReadNode = run {
     lateinit var typ: String
-    var ckSize = 0
-    var buf = ByteBuffer.allocate(8)
+    var ckSize: Int
+    var buf: ByteBuffer = ByteBuffer.allocate(8)
     ReadNode { key ->
         (key.channel() as ByteChannel).let { chan ->
             chan.read(buf)
@@ -72,7 +74,7 @@ fun ReadChunk(yeild: ((Chunk) -> Unit), next: FsmNode = Terminal()) = run {
                 buf.get(byteArray)
                 typ = String(byteArray, Charsets.UTF_8)
                 ckSize = buf.int
-                buf = if (ckSize > 2048) ByteBuffer.allocateDirect(ckSize) else ByteBuffer.allocate(ckSize)
+                buf = if (ckSize > 2047) ByteBuffer.allocateDirect(ckSize) else ByteBuffer.allocate(ckSize)
                 ReadNode {
                     chan.read(buf)
                     if (buf.hasRemaining()) null
@@ -85,7 +87,3 @@ fun ReadChunk(yeild: ((Chunk) -> Unit), next: FsmNode = Terminal()) = run {
         }
     }
 }
-/*
-Kotlin: Conflicting declarations:
- public val SimpleMessage */ /* = Pai2<Vect02<String, String> /* = Pai2<Int, (Int) -> Pai2<String, String>> *//* , String> *//* .serialize: Pair<List<Pair<String, String>>, String>,
- public val SimpleMessage */ /* = Pai2<Vect02<String, String> /* = Pai2<Int, (Int) -> Pai2<String, String>> *//* , String> *//* .serialize: Pair<List<Pair<String, String>>, String> */

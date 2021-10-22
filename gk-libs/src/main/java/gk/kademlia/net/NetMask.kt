@@ -12,7 +12,7 @@ interface NetMask<P : Comparable<P>> {
     val bits: Int
 
     /**math functions*/
-    val ops: BitOps<P> get() = BitOps.minOps<P>(bits.toUInt()) as BitOps<P>
+    val ops: BitOps<P> get() = BitOps.minOps(bits.toUInt())
 
     /**one function
      * satu=indonesian 1
@@ -26,16 +26,19 @@ interface NetMask<P : Comparable<P>> {
     val mask: P
         get() = ops.run {
             var acc = xor(satu, satu)
-            repeat(bits.toInt()) { x ->
+            repeat(bits) { x ->
                 acc = shl(satu, x)
                 acc = xor(satu, acc)
             }
             acc
         }
 
-    fun distance(p1: P, p2: P) = ops.run {
-        val xor1 = xor(p1, p2)
-        (0 until bits.toInt()).fold(0) { acc, i ->
+    /**
+     * reports the xor bits count betweeb alice and bob
+     */
+    fun distance(alice: P, bob: P): Int = ops.run {
+        val xor1 = xor(alice, bob)
+        (0 until bits).fold(0) { acc, i ->
             if (one == and(one, shr(xor1, i)))
                 acc.inc() else acc
         }.toInt()
@@ -45,25 +48,23 @@ interface NetMask<P : Comparable<P>> {
         /**
          * for federating data, you want an unbounded DHT full of volunteers.
          */
-        object coolSz : NetMask<ULong> {
-            override val bits = 64
+        object CoolSz : NetMask<ULong> {
+            override val bits: Int = 64
         }
 
         /**
          * this node count probably out lives most single grenade detonations.
          */
-        object warmSz : NetMask<Byte> {
-            override val bits = 7
+        object WarmSz : NetMask<Byte> {
+            override val bits: Int = 7
         }
 
 
         /**
          * for when n=3 is handy, spawn a new namespace with the first/best 3 nodes to volunteer.
          */
-        object hotSz : NetMask<Byte> {
-            override val bits = 2
+        object HotSz : NetMask<Byte> {
+            override val bits: Int = 2
         }
     }
 }
-
-operator fun NetMask<*>.invoke() = this.bits
