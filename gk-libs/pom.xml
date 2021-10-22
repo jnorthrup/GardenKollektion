@@ -3,7 +3,6 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>com.vsiwest.gossip</groupId>
         <artifactId>meta-gk</artifactId>
@@ -21,10 +20,10 @@
         * java names, kotlin fp
     </description>
     <dependencies>
-        <dependency>
-            <groupId>org.apache.camel</groupId>
-            <artifactId>camel-core</artifactId>
-            <version>3.11.2</version>
-        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>org.apache.camel</groupId>-->
+        <!--            <artifactId>camel-core</artifactId>-->
+        <!--            <version>3.11.2</version>-->
+        <!--        </dependency>-->
     </dependencies>
 </project>

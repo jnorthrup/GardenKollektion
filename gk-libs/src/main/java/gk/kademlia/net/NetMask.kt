@@ -4,7 +4,7 @@ package gk.kademlia
 
 import gk.kademlia.bitops.BitOps
 
-interface NetworkSize {
+interface NetMask {
     operator fun invoke(): Int
     fun <P : Comparable<P>> distance(ops: BitOps<P>, p1: P, p2: P): Int {
         with(ops) {
@@ -21,14 +21,14 @@ interface NetworkSize {
         /**
          * for federating data, you want an unbounded DHT full of volunteers.
          */
-        object coolSz : NetworkSize {
+        object coolSz : NetMask {
             override fun invoke(): Int = 64
         }
 
         /**
          * this node count probably out lives most single grenade detonations.
          */
-        object warmSz : NetworkSize {
+        object warmSz : NetMask {
             override fun invoke(): Int = 7
         }
 
@@ -36,7 +36,7 @@ interface NetworkSize {
         /**
          * for when n=3 is handy, spawn a new namespace with the first/best 3 nodes to volunteer.
          */
-        object hotSz : NetworkSize {
+        object hotSz : NetMask {
             override fun invoke(): Int = 2
         }
     }

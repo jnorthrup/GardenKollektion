@@ -22,10 +22,8 @@
     <dependencies>
         <dependency>
             <groupId>com.vsiwest.columnar</groupId>
-            <artifactId>lillypads</artifactId>
+            <artifactId>vector-like</artifactId>
             <version>1.0.2-SNAPSHOT</version>
         </dependency>
-
     </dependencies>
-
 </project>

@@ -10,12 +10,78 @@
             <version>1.0.2-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.ensarsarajcic.kotlinx</groupId>
+            <artifactId>serialization-msgpack-timestamp-extension</artifactId>
+            <version>0.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ensarsarajcic.kotlinx</groupId>
+            <artifactId>serialization-msgpack-unsigned-support</artifactId>
+            <version>0.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ensarsarajcic.kotlinx</groupId>
+            <artifactId>serialization-msgpack</artifactId>
+            <version>0.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-serialization-json-jvm</artifactId>
+            <version>1.3.0</version>
+        </dependency>
+        <!--        &lt;!&ndash; https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-serialization-cbor-jvm &ndash;&gt;-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.jetbrains.kotlinx</groupId>-->
+        <!--            <artifactId>kotlinx-serialization-cbor-jvm</artifactId>-->
+        <!--            <version>1.3.0</version>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.jetbrains.kotlinx</groupId>-->
+        <!--            <artifactId>kotlinx-serialization-runtime-configparser</artifactId>-->
+        <!--            <version>0.20.0</version>-->
+        <!--        </dependency>-->
+        <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-datetime-jvm -->
+        <!--        <dependency>-->
+        <!--            <groupId>org.jetbrains.kotlinx</groupId>-->
+        <!--            <artifactId>kotlinx-datetime-jvm</artifactId>-->
+        <!--            <version>0.3.0</version>-->
+        <!--        </dependency>-->
     </dependencies>
-
     <parent>
         <groupId>com.vsiwest.gossip</groupId>
         <artifactId>meta-gk</artifactId>
         <version>1.0.2-SNAPSHOT</version>
     </parent>
     <artifactId>gk-agent</artifactId>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.version}</version>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <compilerPlugins>
+                        <plugin>kotlinx-serialization</plugin>
+                    </compilerPlugins>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-maven-serialization</artifactId>
+                        <version>${kotlin.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
 </project>

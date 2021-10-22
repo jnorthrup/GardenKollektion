@@ -1,6 +1,7 @@
 package gk.kademlia.agent.fsm
 
 import vec.macros.Tripl3
+import vec.macros.t2
 import java.net.InetSocketAddress
 import java.nio.channels.*
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -8,7 +9,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.min
 
-class FSM(var topLevel: FsmNode? = null) : Runnable, AutoCloseable {
+open class FSM(var topLevel: FsmNode? = null) : Runnable, AutoCloseable {
     private val q = ConcurrentLinkedQueue<Tripl3<SelectableChannel, Int, FsmNode>>()
     var selectorThread: Thread = Thread.currentThread()
     var selector: Selector = Selector.open()
@@ -31,7 +32,6 @@ class FSM(var topLevel: FsmNode? = null) : Runnable, AutoCloseable {
                     } catch (e: Throwable) {
                         e.printStackTrace()
                     }
-
                 }
             }
             val select = selector.select { key ->
@@ -63,46 +63,56 @@ class FSM(var topLevel: FsmNode? = null) : Runnable, AutoCloseable {
      * @param selectionKey the already registered key or null
      * @param channel the Channel when selection Key is null
      */
-    fun qUp(fsmNode: FsmNode, selectionKey: SelectionKey?, channel: SelectableChannel? = selectionKey?.channel()) {
+
+    fun qUp(
+        fsmNode: FsmNode,
+        selectionKey: SelectionKey? = null,
+        channel: SelectableChannel? = selectionKey?.channel(),
+    ) = try {
         channel?.takeIf { it.isOpen }?.run {
-            if (Thread.currentThread() === selectorThread) try {
+            if (Thread.currentThread() === selectorThread)
                 register(selector, fsmNode.interest, fsmNode)
-            } catch (e: ClosedChannelException) {
-                e.printStackTrace()
-            } else synchronized(q) { q.add(Tripl3.invoke(this, fsmNode.interest, fsmNode)) }
+            else synchronized(q) { q.add(Tripl3.invoke(this, fsmNode.interest, fsmNode)) }
             selector.wakeup()
         }
+    } catch (_: Throwable) {
     }
 
+
     companion object {
+        /**
+         * handles the thread pool initialization tangle of concurrency and wait.
+         *
+         * returns Pai2 of threadpool and FSM
+         *
+         * call exectuorservice.shutdown or fsm.close for the purposes of stopping the fsm at a minimum.
+         *
+         */
         @JvmStatic
         fun launch(
             top: FsmNode,
             executorService: ExecutorService = Executors.newCachedThreadPool(),
             inetSocketAddress: InetSocketAddress = InetSocketAddress(2112),
             channel: SelectableChannel = ServerSocketChannel.open(),
-        ) {
-            executorService.apply {
-                val agentFsm: FSM = FSM(top)
-                submit {
-                    val channel1 = channel.configureBlocking(false)
-                    (channel1 as? NetworkChannel)?.bind(inetSocketAddress)
-                    agentFsm.qUp(top, null, channel1)
-                    submit(agentFsm)
-                }
-                val lock = Object()
-                synchronized(lock) {
-                    while (!isShutdown) {
-                        lock.wait(1000)
-                    }
-                    /**
-                     * boilerplate shutdown code should be here.
-                     */
-                    agentFsm.selector.close()//the kill switch
-                }
-
+        ) = executorService.run {
+            val agentFsm = FSM(top)
+            submit {
+                val channel1: SelectableChannel = channel.configureBlocking(false)
+                (channel1 as? NetworkChannel)?.bind(inetSocketAddress)
+                agentFsm.qUp(top, channel = channel1)
+                submit(agentFsm)
             }
+            val lock = Object()
+            synchronized(lock) {
+                while (!isShutdown) {
+                    lock.wait(1000)
+                }
+                /**
+                 * boilerplate shutdown code should be here.
+                 */
+                agentFsm.selector.close()//the kill switch
+            }
+            this t2 agentFsm
         }
-
     }
 }

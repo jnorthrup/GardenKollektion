@@ -1,6 +1,6 @@
 package gk.kademlia.id
 
-import gk.kademlia.NetworkSize
+import gk.kademlia.NetMask
 import gk.kademlia.bitops.BitOps
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.random.asKotlinRandom
@@ -14,15 +14,15 @@ import kotlin.random.asKotlinRandom
 
 interface NUID<Primitive : Comparable<Primitive>> {
     var id: Primitive?
-    val bits: NetworkSize
+    val netmask: NetMask
     val ops: BitOps<Primitive>
 
     fun random(distance: Int? = null, centroid: Primitive = id!!) = ops.run {
         ThreadLocalRandom.current().asKotlinRandom().run {
             var accum = centroid
-            (distance?.takeIf { it <= bits() } ?: nextInt(bits())).let { distance ->
+            (distance?.takeIf { it <= netmask() } ?: nextInt(netmask())).let { distance ->
                 linkedSetOf<Int>().apply {
-                    while (size < distance) add(nextInt(until = bits()))
+                    while (size < distance) add(nextInt(until = netmask()))
                 }
             }.sorted().forEach {
                 accum = xor(accum, shl(one, it))
@@ -31,7 +31,7 @@ interface NUID<Primitive : Comparable<Primitive>> {
         }
     }
 
-    val capacity: Primitive get() = with(ops) { minus(shl(one, bits()), one) }
+    val capacity: Primitive get() = with(ops) { minus(shl(one, netmask()), one) }
     fun assign(it: Primitive) {
         if (id != null) id.run { throw RuntimeException("GUID assigned twice for $id") }
         id = it

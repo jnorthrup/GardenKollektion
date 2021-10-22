@@ -1,8 +1,8 @@
 package gk.kademlia.id
 
-import gk.kademlia.NetworkSize
+import gk.kademlia.NetMask
 import gk.kademlia.id.impl.UByteNUID
 
 class WorkerNUID(id: UByte? = null) : UByteNUID(id) {
-    override val bits = NetworkSize.Companion.warmSz
+    override val netmask = NetMask.Companion.warmSz
 }

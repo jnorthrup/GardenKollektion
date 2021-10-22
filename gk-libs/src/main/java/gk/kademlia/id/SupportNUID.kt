@@ -1,8 +1,8 @@
 package gk.kademlia.id
 
-import gk.kademlia.NetworkSize
+import gk.kademlia.NetMask
 import gk.kademlia.id.impl.ULongNUID
 
-class SupportNUID(override var id: ULong? = null) : ULongNUID<NetworkSize.Companion.coolSz>(id) {
-    override val bits = NetworkSize.Companion.coolSz
+class SupportNUID(override var id: ULong? = null) : ULongNUID<NetMask.Companion.coolSz>(id) {
+    override val netmask = NetMask.Companion.coolSz
 }
