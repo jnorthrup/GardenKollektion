@@ -126,7 +126,13 @@ class RouteTableTest {
                     routingTable.addRoute(WorkerNUID(nuid.run { random() }) t2 URI("urn:$n"))
                 }
                 logDebug {
-                    "bits: ${routingTable.agentNUID.netmask.bits} fog: ${routingTable.fogOfWar} total: ${routingTable.buckets.sumOf { it.size }} bits/count: ${routingTable.buckets.mapIndexed { x, y -> x.inc() to y.size }}"
+                    "bits: ${routingTable.agentNUID.netmask.bits} fog: ${routingTable.fogOfWar} total: ${
+                        routingTable.buckets.sumOf { it.size }
+                    } bits/count: ${
+                        routingTable.buckets.mapIndexed { x, y ->
+                            x.inc() to y.size
+                        }
+                    }"
                 }
             }
         routingTable = object : RoutingTable<Byte, NetMask.Companion.warmSz>(NUID, c++) {}
@@ -134,38 +140,37 @@ class RouteTableTest {
         routingTable.addRoute(nuid.run {
             val id1 = random(netmask.bits)
             WorkerNUID(id1) t2 URI("urn:$id1")
-        })
-            .run {
-                routingTable.addRoute(nuid.run {
-                    val id1 = random(netmask.bits)
-                    WorkerNUID(id1) t2 URI("urn:$id1")
-                })
+        }).run {
+            routingTable.addRoute(nuid.run {
+                val id1 = random(netmask.bits)
+                WorkerNUID(id1) t2 URI("urn:$id1")
+            })
 
-                val ich = nuid.ops.one
-                run {
-                    val linkedSetOf = linkedSetOf(ich).also { it.clear() }
+            val ich = nuid.ops.one
+            run {
+                val linkedSetOf = linkedSetOf(ich).also { it.clear() }
 
-                    while (linkedSetOf.size < 3) linkedSetOf.add(nuid.run { random(netmask.bits - 1) })
-                    linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
-                }
-                run {
-                    val linkedSetOf = linkedSetOf(ich).also { it.clear() }
-
-                    while (linkedSetOf.size < 7) linkedSetOf.add(nuid.run { random(1) })
-                    linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
-                }
-                debug { }
-
-                assertEquals(7, routingTable.buckets[0].size)
-                val fibonacciReporter = FibonacciReporter(20000, "routed")
-                for (n in 0 until 20000) {
-                    fibonacciReporter.report(n)
-                    routingTable.addRoute(WorkerNUID(nuid.run { random() }) t2 URI("urn:$n"))
-                }
-                logDebug {
-                    "bits: ${routingTable.agentNUID.netmask.bits} fog: ${routingTable.fogOfWar} total: ${routingTable.buckets.sumOf { it.size }} bits/count: ${routingTable.buckets.mapIndexed { x, y -> x.inc() to y.size }}"
-                }
+                while (linkedSetOf.size < 3) linkedSetOf.add(nuid.run { random(netmask.bits - 1) })
+                linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
             }
+            run {
+                val linkedSetOf = linkedSetOf(ich).also { it.clear() }
+
+                while (linkedSetOf.size < 7) linkedSetOf.add(nuid.run { random(1) })
+                linkedSetOf.forEach { routingTable.addRoute(WorkerNUID(it) t2 URI("urn:$it")) }
+            }
+            debug { }
+
+            assertEquals(7, routingTable.buckets[0].size)
+            val fibonacciReporter = FibonacciReporter(20000, "routed")
+            for (n in 0 until 20000) {
+                fibonacciReporter.report(n)
+                routingTable.addRoute(WorkerNUID(nuid.run { random() }) t2 URI("urn:$n"))
+            }
+            logDebug {
+                "bits: ${routingTable.agentNUID.netmask.bits} fog: ${routingTable.fogOfWar} total: ${routingTable.buckets.sumOf { it.size }} bits/count: ${routingTable.buckets.mapIndexed { x, y -> x.inc() to y.size }}"
+            }
+        }
         routingTable = object : RoutingTable<Byte, NetMask.Companion.warmSz>(NUID, c++) {}
 
         routingTable.addRoute(nuid.run {

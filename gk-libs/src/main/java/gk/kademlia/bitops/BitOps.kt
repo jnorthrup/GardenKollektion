@@ -3,11 +3,11 @@ package gk.kademlia.bitops
 import gk.kademlia.bitops.impl.*
 
 interface BitOps<Primitive : Comparable<Primitive>> {
-    val xor: (Primitive, Primitive) -> Primitive
-    val and: (Primitive, Primitive) -> Primitive
     val one: Primitive
     val shl: (Primitive, Int) -> Primitive
     val shr: (Primitive, Int) -> Primitive
+    val xor: (Primitive, Primitive) -> Primitive
+    val and: (Primitive, Primitive) -> Primitive
     val plus: (Primitive, Primitive) -> Primitive
     val minus: (Primitive, Primitive) -> Primitive
     fun toNumber(x: Primitive): Number = x.let {
@@ -17,7 +17,6 @@ interface BitOps<Primitive : Comparable<Primitive>> {
             is UShort -> (it as UShort).toInt()
             is UInt -> (it as UInt).toLong()
             else -> (it).toString().toBigInteger()
-
         }
     }
 
