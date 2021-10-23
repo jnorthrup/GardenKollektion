@@ -19,7 +19,8 @@ val ReifiedMessage.deserialize: SimpleMessage get() = (first α { Tw1n(it) } t2 
 
 val SimpleMessage.toChunk: Tripl3<String, Int, ByteBuffer>
     get() = SmCodec.send(this).run { Tripl3("BYTE", limit(), this) }
-val ByteBuffer.fromChunk: Pai2<Pai2<Int, (Int) -> Pai2<String, String>>, String>? get() = SmCodec.recv(also { long }.slice())
+val ByteBuffer.fromChunk: Pai2<Pai2<Int, (Int) -> Pai2<String, String>>, String>?
+    get() = SmCodec.recv(also { long }.slice())
 
 
 /**

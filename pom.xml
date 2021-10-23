@@ -18,6 +18,7 @@
         <module>gk-libs</module>
         <module>gk-bytecursive</module>
         <module>gk-agent</module>
+        <module>gk-examples</module>
     </modules>
     <dependencies>
         <dependency>
