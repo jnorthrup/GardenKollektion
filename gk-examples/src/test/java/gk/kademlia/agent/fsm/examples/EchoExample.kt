@@ -1,5 +1,6 @@
 package gk.kademlia.agent.fsm.examples
 
+import gk.kademlia.agent.fsm.FSM.Companion.launch
 import java.nio.ByteBuffer
 import java.nio.channels.ServerSocketChannel
 import java.nio.channels.SocketChannel
@@ -9,7 +10,7 @@ class EchoExample {
         @JvmStatic
         fun main(vararg args: String) {
             //typical boilerplate
-            gk.kademlia.agent.fsm.FSM.Companion.launch(echoAcceptor())
+            launch(echoAcceptor())
         }
 
 

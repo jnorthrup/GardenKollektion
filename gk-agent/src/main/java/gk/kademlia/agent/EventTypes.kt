@@ -28,18 +28,22 @@ enum class EventTypes(
      *
      * 1. random timer starts to accept only one closest response favoring even-higher or odd-lower
      * 1. accepts first concurring pair of responses and ends timer. ( voter_count=strength+1)
-     * 1. uses proposal strength 1 on empty dance floor. (assumes netsplit)
+     * 1. timesout and uses the  proposal NUID as strength=1 on empty dance floor. (assumes netsplit)
      * 1. sends a ping with new address
      */
-    JOIN(proposed, former, pubkey),
+    JOIN(proposed, former, mypubkey),
 
     /** weakest possible NUID record removal
      */
     LAGD(nuid),
 
-    /** creates blocking expressions, against keys and addresses and netmask expressions.
+    /** network eviction
+     *
+     * creates blocking expressions, against keys and addresses and netmask expressions.
+     *
+     *  BuhBye now!
      */
-    EVICT(address, addrpattern, key),
+    BUBY(address, addrpattern, evictpubkey),
     ;
 
     /**
@@ -55,12 +59,12 @@ enum class EventTypes(
         suggest,
         proposed,
         former,
-        pubkey,
+        mypubkey,
         nuid,
         routes,
         address,
         addrpattern,
-        key,
+        evictpubkey,
         ;
     }
 }
