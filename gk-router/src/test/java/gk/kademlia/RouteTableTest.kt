@@ -27,7 +27,7 @@ class RouteTableTest {
     @Test
     fun testRouteAdd() {
         val NUID = nuid
-        var routingTable = RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID)
+        var routingTable = RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID, optimal = true)
 
         routingTable.addRoute(nuid.run {
             val id1 = random(netmask.bits)
@@ -41,9 +41,9 @@ class RouteTableTest {
             assertEquals(routingTable.buckets[0].size, 7)
             assertEquals(routingTable.buckets[1].size, 11)
             assertEquals(routingTable.buckets[6].size, 1)
-            val fibonacciReporter: FibonacciReporter = FibonacciReporter(20000)
+
             for (n in 0 until 20000) {
-                fibonacciReporter.report(n)
+
                 routingTable.addRoute(WorkerNUID(nuid.run { random() }) t2 URI("urn:$n"))
             }
             logDebug {
@@ -87,10 +87,10 @@ class RouteTableTest {
                 routingTable.addRoute(WorkerNUID(nuid.run { random() }) t2 URI("urn:$n"))
             }
             logDebug {
-                "bits: ${routingTable.agentNUID.netmask.bits} fog: ${null} total: ${routingTable.buckets.sumOf { it.size }} bits/count: ${routingTable.buckets.mapIndexed { x, y -> x.inc() to y.size }}"
+                "bits: ${routingTable.agentNUID.netmask.bits} total: ${routingTable.buckets.sumOf { it.size }} bits/count: ${routingTable.buckets.mapIndexed { x, y -> x.inc() to y.size }}"
             }
         }
-        routingTable = object : RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID) {}
+        routingTable = object : RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID, true) {}
 
         routingTable.addRoute(nuid.run {
             val id1 = random(netmask.bits)
@@ -118,7 +118,7 @@ class RouteTableTest {
                 debug { }
 
                 assertEquals(7, routingTable.buckets[0].size)
-                assertEquals(3, routingTable.buckets[5].size)// todo, drop fog of war for a flat cap.
+                assertEquals(3, routingTable.buckets[5].size)
 
                 val fibonacciReporter = FibonacciReporter(20000, "routed")
                 for (n in 0 until 20000) {
@@ -135,7 +135,7 @@ class RouteTableTest {
                     }"
                 }
             }
-        routingTable = object : RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID) {}
+        routingTable = object : RoutingTable<Byte, NetMask.Companion.WarmSz>(NUID, false) {}
 
         routingTable.addRoute(nuid.run {
             val id1 = random(netmask.bits)
@@ -199,7 +199,8 @@ class RouteTableTest {
             routingTable.addRoute(WorkerNUID(nuid.run { random() }) t2 URI("urn:$n"))
         }
         logDebug {
-            "bits: ${routingTable.agentNUID.netmask.bits} fog: ${null} total: ${routingTable.buckets.sumOf { it.size }} bits/count: ${routingTable.buckets.mapIndexed { x, y -> x.inc() to y.size }}"
+
+        "bits: ${routingTable.agentNUID.netmask.bits} fog: ${null} total: ${routingTable.buckets.sumOf { it.size }} bits/count: ${routingTable.buckets.mapIndexed { x, y -> x.inc() to y.size }}"
         }
     }
 }
