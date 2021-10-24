@@ -3,12 +3,12 @@
 
 package gk.kademlia
 
-import cursors.io.FibonacciReporter
 import gk.kademlia.id.WorkerNUID
 import gk.kademlia.net.NetMask
 import gk.kademlia.routing.RoutingTable
 import org.junit.Test
 import vec.macros.t2
+import vec.util.FibonacciReporter
 import vec.util.debug
 import vec.util.logDebug
 import java.net.URI
@@ -83,7 +83,7 @@ class RouteTableTest {
             assertEquals(7, routingTable.buckets[0].size)
             val fibonacciReporter = FibonacciReporter(20000, "routed")
             for (n in 0 until 20000) {
-                fibonacciReporter.report(n)
+                fibonacciReporter.report(n)?.let { logDebug { it } }
                 routingTable.addRoute(WorkerNUID(nuid.run { random() }) t2 URI("urn:$n"))
             }
             logDebug {
