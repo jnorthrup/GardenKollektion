@@ -24,18 +24,20 @@ open class RoutingTable<TNum : Comparable<TNum>, Sz : NetMask<TNum>>(
      * contract is to have the route guid id fully realized in agent first
      */
     fun addRoute(other: Route<TNum>): Pai2<NUID<TNum>, Address>? = other.let { (g: NUID<TNum>) ->
-        var res: Route<TNum>? = null
-        val origDistance = min(agentNUID.netmask.distance(agentNUID.id!!, g.id!!), bucketCount)
-        if (origDistance > 0)
-            res = buckets[origDistance.dec()].getOrPut(g.id!!, other.`⟲`)
-        res
+        min(agentNUID.netmask.distance(agentNUID.id!!, g.id!!), bucketCount).let {
+            if (it > 0)
+                buckets[it.dec()].getOrPut(g.id!!, other.`⟲`)
+            else null
+        }
     }
 
-    fun rmRoute(other: Route<TNum>): Pai2<NUID<TNum>, Address>? = other.let { (g) ->
-        var res: Route<TNum>? = null
-        val origDistance = agentNUID.netmask.distance(agentNUID.id!!, g.id!!)
-        if (origDistance > 0) res = buckets.takeIf { it.isNotEmpty() }?.get(origDistance.dec())?.remove(g.id!!)
-        res
+    fun rmRoute(other: Route<TNum>): Pai2<NUID<TNum>, Address>? = other.let { (g: NUID<TNum>) ->
+        agentNUID.netmask.distance(agentNUID.id!!, g.id!!).let { origDistance ->
+            if (origDistance > 0)
+                buckets.takeIf { it.isNotEmpty() }?.get(min(bucketCount, origDistance.dec()))?.remove(g.id!!)
+            else null
+
+        }
     }
 
     fun bucketFor(g: NUID<TNum>): Int =

@@ -12,18 +12,18 @@
         </dependency>
         <dependency>
             <groupId>com.ensarsarajcic.kotlinx</groupId>
-            <artifactId>serialization-msgpack-timestamp-extension</artifactId>
-            <version>0.4.0</version>
+            <artifactId>serialization-msgpack-timestamp-extension-jvm</artifactId>
+            <version>0.4.1</version>
         </dependency>
         <dependency>
             <groupId>com.ensarsarajcic.kotlinx</groupId>
-            <artifactId>serialization-msgpack-unsigned-support</artifactId>
-            <version>0.4.0</version>
+            <artifactId>serialization-msgpack-unsigned-support-jvm</artifactId>
+            <version>0.4.1</version>
         </dependency>
         <dependency>
             <groupId>com.ensarsarajcic.kotlinx</groupId>
-            <artifactId>serialization-msgpack</artifactId>
-            <version>0.4.0</version>
+            <artifactId>serialization-msgpack-jvm</artifactId>
+            <version>0.4.1</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>

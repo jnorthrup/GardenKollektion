@@ -16,7 +16,6 @@
         </dependency>
     </dependencies>
 
-
     <artifactId>gk-router</artifactId>
     <description>
         intent:

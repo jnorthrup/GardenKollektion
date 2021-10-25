@@ -14,8 +14,8 @@ typealias KeyAction = (SelectionKey) -> FsmNode?
 typealias SimpleMessage = Pai2<Vect0r<Pai2<String, String>>, String>
 typealias ReifiedMessage = Pair<List<Pair<String, String>>, String>
 
-val SimpleMessage.serialize: ReifiedMessage get() = (first.toList().map { it.pair } to second)
-val ReifiedMessage.deserialize: SimpleMessage get() = (first α { Tw1n(it) } t2 second)
+val SimpleMessage.reify: ReifiedMessage get() = first.toList().map { it.pair } to second
+val ReifiedMessage.virtualize: SimpleMessage get() = first α { Tw1n(it) } t2 second
 
 val SimpleMessage.toChunk: Tripl3<String, Int, ByteBuffer>
     get() = SmCodec.send(this).run { Tripl3("BYTE", limit(), this) }
@@ -59,10 +59,10 @@ fun WriteChunk(chunk: Chunk, next: FsmNode): WriteNode = ByteBuffer.allocate(8).
 
 
 /**
- * reads a chunk.  when the chunk is done the "tee" is called
+ * reads a chunk.  when the chunk is done the "yeild" is called
  */
 @JvmOverloads
-fun ReadChunk(yeild: ((Chunk) -> Unit), next: FsmNode = Terminal()): ReadNode = run {
+fun ReadChunk(yeild: ((Chunk) -> Unit)?, next: FsmNode = Terminal()): ReadNode = run {
     lateinit var typ: String
     var ckSize: Int
     var buf: ByteBuffer = ByteBuffer.allocate(8)
@@ -80,7 +80,7 @@ fun ReadChunk(yeild: ((Chunk) -> Unit), next: FsmNode = Terminal()): ReadNode = 
                     chan.read(buf)
                     if (buf.hasRemaining()) null
                     else {
-                        yeild(typ t2 ckSize t3 buf.flip())
+                        yeild?.invoke(typ t2 ckSize t3 buf.flip())
                         next
                     }
                 }
