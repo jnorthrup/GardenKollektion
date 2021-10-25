@@ -24,17 +24,18 @@ interface BitOps<Primitive : Comparable<Primitive>> {
         /**
          * minimum bitops types for the intended bitcount of NUID
          */
-        fun <Primitive : Comparable<Primitive>> minOps(size: UInt) =
+        fun minOps(size: Int): BitOps<*> =
             when (size) {
-                in UInt.MIN_VALUE..7u -> ByteBitOps
-                8u -> UByteBitOps
-                in 9u..15u -> ShortBitOps
-                16u -> UShortBitOps
-                in 17u..31u -> IntBitOps
-                32u -> UIntBitOps
-                in 33u..63u -> LongBitOps
-                64u -> ULongBitOps
+                in Int.MIN_VALUE..7 -> ByteBitOps
+                8 -> UByteBitOps
+                in 9..15 -> ShortBitOps
+                16 -> UShortBitOps
+                in 17..31 -> IntBitOps
+                32 -> UIntBitOps
+                in 33..63 -> LongBitOps
+                64 -> ULongBitOps
                 else -> BigIntOps
-            } as BitOps<Primitive>
+            }
+
     }
 }

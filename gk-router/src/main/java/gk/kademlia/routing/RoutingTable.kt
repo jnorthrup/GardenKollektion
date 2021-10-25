@@ -26,7 +26,8 @@ open class RoutingTable<TNum : Comparable<TNum>, Sz : NetMask<TNum>>(
     fun addRoute(other: Route<TNum>): Pai2<NUID<TNum>, Address>? = other.let { (g: NUID<TNum>) ->
         var res: Route<TNum>? = null
         val origDistance = min(agentNUID.netmask.distance(agentNUID.id!!, g.id!!), bucketCount)
-        if (origDistance > 0) res = buckets[origDistance.dec()].getOrPut(g.id!!, other.`⟲`)
+        if (origDistance > 0)
+            res = buckets[origDistance.dec()].getOrPut(g.id!!, other.`⟲`)
         res
     }
 
@@ -37,8 +38,7 @@ open class RoutingTable<TNum : Comparable<TNum>, Sz : NetMask<TNum>>(
         res
     }
 
-
-    private fun bucketFor(g: NUID<TNum>): Int =
+    fun bucketFor(g: NUID<TNum>): Int =
         min(agentNUID.netmask.distance(agentNUID.id!!, g.id!!), bucketCount).dec()
 
     open val bucketCount: Int = agentNUID.netmask.bits.let { if (optimal) it else it / 2 + 1 }
@@ -47,20 +47,3 @@ open class RoutingTable<TNum : Comparable<TNum>, Sz : NetMask<TNum>>(
     val buckets: Array<MutableMap<TNum, Route<TNum>>> = Array(bucketCount) { linkedMapOf() }
 
 }
-
-/*
-fun <S, F : () -> S> create(code: () -> S): S {
-    println("string")
-    return code()
-}
-
-fun <S : Unit, F : () -> S> create(code: F): S {
-    println("unit")
-    return code.invoke()
-}
-
-fun main() {
-    create { "a" } // prints unit
-    val a = { "a" }
-    create(a) // prints string
-}*/

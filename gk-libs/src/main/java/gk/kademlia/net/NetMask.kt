@@ -12,7 +12,9 @@ interface NetMask<P : Comparable<P>> {
     val bits: Int
 
     /**math functions*/
-    val ops: BitOps<P> get() = BitOps.minOps(bits.toUInt())
+    @Suppress("UNCHECKED_CAST")
+    val ops: BitOps<P>
+        get() = BitOps.minOps(bits) as BitOps<P>
 
     /**one function
      * satu=indonesian 1
